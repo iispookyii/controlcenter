@@ -1108,8 +1108,11 @@ function renderLeave(el) {
 
   const ta = $q("#leaveAdminList");
   if (ta) {
-    ta.innerHTML = state.leaves.map(l => `
-      <tr>
+    ta.innerHTML = state.leaves.map(l => {
+      const action = l.status === "pending"
+        ? `<button class="btn-sm" style="background:var(--teal);color:#fff;" onclick="appLeaveAction('${l.id}','approved')">Approve</button><button class="btn-sm" onclick="appLeaveAction('${l.id}','rejected')">Reject</button>`
+        : `<span style="font-size:0.78rem;color:var(--ink-dim);">${escapeHtml(l.approvedBy || "-")}</span>`;
+      return `<tr>
         <td>${escapeHtml(l.employeeName)}</td>
         <td>${escapeHtml(l.employeeEmail)}</td>
         <td>${escapeHtml(l.type)}</td>
@@ -1118,12 +1121,7 @@ function renderLeave(el) {
         <td>${l.days}</td>
         <td>${escapeHtml(l.reason)}</td>
         <td><span class="badge ${l.status==='approved'?'badge-success':l.status==='pending'?'badge-warning':'badge-error'}">${escapeHtml(l.status)}</span></td>
-        <td>
-          ${l.status === 'pending' ? `
-            <button class="btn-sm" style="background:var(--teal);color:#fff;" onclick="appLeaveAction('${l.id}','approved')">Approve</button>
-            <button class="btn-sm" onclick="appLeaveAction('${l.id}','rejected')">Reject</button>
-          ` : `<span style="font-size:0.78rem;color:var(--ink-dim);">${escapeHtml(l.approvedBy || '-')}</span>`}
-        </td>
+        <td>${action}</td>
       </tr>`;
     }).join("");
   }
