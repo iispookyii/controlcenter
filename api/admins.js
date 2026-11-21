@@ -47,7 +47,8 @@ module.exports = (req, res) => {
     return;
   }
 
-  const { url, method } = req;
+  const url = (req.url || "").split("?")[0];
+  const method = req.method;
 
   // ---- GET /api/admins ----
   if (method === "GET" && url === "/api/admins") {

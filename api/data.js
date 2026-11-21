@@ -47,10 +47,11 @@ module.exports = (req, res) => {
     return;
   }
 
-  const parts = req.url.split("/"); // ['', 'api', 'data', 'collection', 'id']
-  if (parts[1] !== "api" || parts[2] !== "data") return json(res, 404, { error: "Not found" });
-  const collection = parts[3];
-  const id = parts[4];
+  const cleanUrl = (req.url || "").split("?")[0];
+  const parts = cleanUrl.split("/").filter(Boolean); // ['api', 'data', 'collection', 'id']
+  if (parts[0] !== "api" || parts[1] !== "data") return json(res, 404, { error: "Not found" });
+  const collection = parts[2];
+  const id = parts[3];
   if (!collection || !ALLOWED.has(collection)) return json(res, 404, { error: "Unknown collection" });
 
   const check = requireSession(req, res);

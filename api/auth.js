@@ -29,7 +29,8 @@ module.exports = (req, res) => {
     return;
   }
 
-  const { url, method } = req;
+  const url = (req.url || "").split("?")[0];
+  const method = req.method;
 
   // ---- POST /api/auth/login ----
   if (method === "POST" && url === "/api/auth/login") {

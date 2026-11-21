@@ -41,24 +41,41 @@ let currentModule = 'dashboard';
 let previousModule = null;
 
 async function init() {
-  // Try loading full state from API first
+  // Try loading full state from API in parallel first
   let loaded = false;
   try {
-    const users = await api.list("users") || [];
-    const sessions = await api.list("sessions") || [];
-    const audit = await api.list("audit") || [];
-    const employees = await api.list("employees") || [];
-    const vouchers = await api.list("vouchers") || [];
-    const cashflow = await api.list("cashflow") || [];
-    const payroll = await api.list("payroll") || [];
-    const blogs = await api.list("blogs") || [];
-    const invoices = await api.list("invoices") || [];
-    const leaves = await api.list("leaves") || [];
-    const overtime = await api.list("overtime") || [];
-    const tasks = await api.list("tasks") || [];
-    const notifications = await api.list("notifications") || [];
-    const soaUploads = await api.list("soaUploads") || [];
-    state = { users, sessions, audit, employees, vouchers, cashflow, payroll, blogs, invoices, leaves, overtime, tasks, notifications, soaUploads };
+    const [users, sessions, audit, employees, vouchers, cashflow, payroll, blogs, invoices, leaves, overtime, tasks, notifications, soaUploads] = await Promise.all([
+      api.list("users"),
+      api.list("sessions"),
+      api.list("audit"),
+      api.list("employees"),
+      api.list("vouchers"),
+      api.list("cashflow"),
+      api.list("payroll"),
+      api.list("blogs"),
+      api.list("invoices"),
+      api.list("leaves"),
+      api.list("overtime"),
+      api.list("tasks"),
+      api.list("notifications"),
+      api.list("soaUploads")
+    ]);
+    state = {
+      users: users || [],
+      sessions: sessions || [],
+      audit: audit || [],
+      employees: employees || [],
+      vouchers: vouchers || [],
+      cashflow: cashflow || [],
+      payroll: payroll || [],
+      blogs: blogs || [],
+      invoices: invoices || [],
+      leaves: leaves || [],
+      overtime: overtime || [],
+      tasks: tasks || [],
+      notifications: notifications || [],
+      soaUploads: soaUploads || []
+    };
     loaded = true;
   } catch (e) {
     // API unreachable — use localStorage

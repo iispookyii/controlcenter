@@ -64,11 +64,9 @@ export class ApiClient {
       this.useApi = true;
       return res;
     } catch (e) {
-      if (e.message === "OFFLINE") {
-        this.useApi = false;
-        return null; // signals fallback
-      }
-      throw e;
+      if (path.startsWith("/api/auth/login")) throw e;
+      this.useApi = false;
+      return null; // fallback to local storage mirror
     }
   }
 
