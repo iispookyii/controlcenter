@@ -79,13 +79,14 @@ input, select, textarea {
 .auth-3d-body {
   min-height: 100vh;
   width: 100vw;
-  background: radial-gradient(circle at 20% 20%, #0d7f92 0%, #085a68 35%, #043841 70%, #022329 100%);
+  background: radial-gradient(circle at 20% 20%, #128fa3 0%, #0a6b7a 35%, #064752 70%, #032e36 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow-x: hidden;
   position: relative;
   font-family: var(--font-body);
+  filter: brightness(1.08);
 }
 
 .auth-page-container {
@@ -112,72 +113,20 @@ input, select, textarea {
   z-index: 1;
 }
 
-/* Top ACTI Seal & Brand Title */
-.acti-brand-header {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  margin-bottom: 24px;
-  z-index: 5;
-  user-select: none;
-}
-
-.acti-seal-badge {
-  width: 82px;
-  height: 82px;
-  border-radius: 50%;
-  background: #ffffff;
-  padding: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 12px 30px rgba(2, 28, 33, 0.45);
-  transition: transform 0.3s ease;
-  flex-shrink: 0;
-}
-
-.acti-seal-badge:hover {
-  transform: scale(1.04);
-}
-
-.acti-seal-img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  display: block;
-}
-
-.acti-brand-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.acti-title {
-  font-family: var(--font-head);
-  font-size: clamp(1.35rem, 2.6vw, 1.7rem);
-  font-weight: 700;
-  color: #ffffff;
-  line-height: 1.18;
-  letter-spacing: -0.4px;
-  margin: 0;
-  text-shadow: 0 2px 8px rgba(2, 28, 33, 0.35);
-}
-
 /* Main 3D Neumorphic Card */
 .auth-3d-card {
   display: flex;
   flex-direction: row;
   width: 100%;
-  max-width: 840px;
+  max-width: 820px;
   min-height: 440px;
   border-radius: 32px;
-  background: linear-gradient(145deg, #096878 0%, #064e5b 45%, #043a44 100%);
+  background: linear-gradient(145deg, #0b7385 0%, #085868 45%, #05414d 100%);
   box-shadow:
     22px 22px 65px #021a1f,
-    -12px -12px 42px rgba(18, 142, 163, 0.32),
-    inset 1px 1px 2px rgba(255, 255, 255, 0.28);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+    -12px -12px 42px rgba(18, 142, 163, 0.38),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   padding: 24px;
   gap: 32px;
   position: relative;
@@ -197,10 +146,10 @@ input, select, textarea {
   position: relative;
   flex: 1;
   border-radius: 24px;
-  background: linear-gradient(145deg, #032b32 0%, #053b45 100%);
+  background: linear-gradient(145deg, #04323a 0%, #06444f 100%);
   box-shadow:
-    inset 8px 8px 18px #021c21,
-    inset -8px -8px 18px #085563;
+    inset 8px 8px 18px #021e24,
+    inset -8px -8px 18px #0a6272;
   border: 1px solid rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
@@ -213,7 +162,7 @@ input, select, textarea {
 /* Concentric ripples inside well */
 .well-ripples {
   position: absolute;
-  top: 50%;
+  top: 48%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: 320px;
@@ -222,16 +171,19 @@ input, select, textarea {
   z-index: 1;
 }
 
-/* 3D Padlock and 3D Dial Visual Wrappers */
+/* 3D Padlock and 3D Dial Visual Wrappers (Precisely Centered Inside Ripples) */
 .visual-lock-wrap,
 .visual-dial-wrap {
-  position: relative;
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  transform: translate(-50%, -52%);
   z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 220px;
+  height: auto;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -316,37 +268,56 @@ input, select, textarea {
   padding: 8px 12px 8px 0;
 }
 
-.auth-header-block {
-  margin-bottom: 22px;
+/* ACTI Brand Badge inside Auth Card (Matching Image 4) */
+.auth-brand-badge-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.auth-category-tag {
+.auth-brand-seal-wrap {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #ffffff;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(2, 28, 33, 0.4);
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.auth-brand-seal-wrap:hover {
+  transform: scale(1.05);
+}
+
+.auth-card-seal-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
   display: block;
-  font-family: var(--font-head);
-  font-size: 11px;
-  font-weight: 700;
-  color: #2dd4bf;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  margin-bottom: 4px;
 }
 
-.auth-main-title {
+.auth-brand-text-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-card-brand-title {
   font-family: var(--font-head);
-  font-size: clamp(1.65rem, 2.5vw, 2.1rem);
+  font-size: 1.15rem;
   font-weight: 700;
   color: #ffffff;
-  letter-spacing: -0.5px;
-  margin: 0 0 8px 0;
   line-height: 1.2;
-}
-
-.auth-sub-desc {
-  font-family: var(--font-body);
-  font-size: 13.5px;
-  color: #a2cbd2;
-  line-height: 1.5;
+  letter-spacing: -0.3px;
   margin: 0;
+  text-shadow: 0 2px 8px rgba(2, 28, 33, 0.35);
 }
 
 /* Super Admin Account Selector */
@@ -682,17 +653,18 @@ input, select, textarea {
 }
 
 .app-sidebar {
-  width: 260px;
-  background: linear-gradient(180deg, #134e4a 0%, #0c3835 100%);
+  width: 250px;
+  background: linear-gradient(180deg, #09474b 0%, #053337 100%);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
   z-index: 30;
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.08);
+  position: relative;
 }
 
 .brand-bar {
-  padding: 18px 18px;
+  padding: 16px 18px;
   background: transparent;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   color: #fff;
@@ -702,8 +674,8 @@ input, select, textarea {
 }
 
 .sidebar-brand-logo {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: #ffffff;
   padding: 2px;
@@ -721,7 +693,7 @@ input, select, textarea {
 .brand-name {
   font-family: var(--font-head);
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   letter-spacing: -0.2px;
   line-height: 1.25;
   color: #ffffff;
@@ -729,7 +701,7 @@ input, select, textarea {
 
 .brand-subtitle {
   display: block;
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   color: #a5f3fc;
   font-weight: 400;
   margin-top: 2px;
@@ -738,51 +710,79 @@ input, select, textarea {
 
 .nav-list {
   list-style: none;
-  padding: 14px 10px;
+  padding: 16px 0 16px 12px;
   margin: 0;
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
-.nav-item { padding: 0; }
+.nav-item { padding: 0; position: relative; }
 
 .nav-link {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 9px 14px;
-  border-radius: 12px;
-  color: rgba(255, 255, 255, 0.75);
-  font-size: 0.82rem;
+  padding: 9px 16px;
+  border-radius: 18px 0 0 18px;
+  color: #93c5cb;
+  font-size: 0.8rem;
   font-weight: 500;
   font-family: var(--font-head);
   border: 1px solid transparent;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
 }
 
 .nav-link:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
-  transform: translateX(2px);
 }
 
+/* Image 8 ("Daily Report Concept"): Curved Active Tab Notch Cutout */
 .nav-link.active {
-  background: #ffffff;
-  color: #0c3835;
+  background: #f8fafc;
+  color: #08474b;
   font-weight: 600;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
-  transform: translateX(2px);
+  box-shadow: -4px 4px 12px rgba(0, 0, 0, 0.05);
+  position: relative;
+  z-index: 10;
+}
+
+.nav-link.active::before {
+  content: "";
+  position: absolute;
+  top: -18px;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  border-bottom-right-radius: 18px;
+  box-shadow: 6px 6px 0 6px #f8fafc;
+  pointer-events: none;
+}
+
+.nav-link.active::after {
+  content: "";
+  position: absolute;
+  bottom: -18px;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  border-top-right-radius: 18px;
+  box-shadow: 6px -6px 0 6px #f8fafc;
+  pointer-events: none;
 }
 
 .nav-link svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
   stroke: currentColor;
-}
   transition: transform 0.2s;
 }
 
@@ -791,7 +791,7 @@ input, select, textarea {
 }
 
 .nav-link.active svg {
-  stroke: #ffffff;
+  stroke: #08474b;
   stroke-width: 2.3;
 }
 
@@ -1525,6 +1525,213 @@ tr:last-child td { border-bottom: none; }
   gap: 10px;
   margin-top: 14px;
   align-items: center;
+}
+
+/* --- Requests for Approval: Single-Line Equal Buttons (Image 7) --- */
+.approval-actions-cell {
+  white-space: nowrap !important;
+  width: 1%;
+}
+.approval-actions-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: nowrap;
+}
+.btn-appr-action {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-head);
+}
+.btn-appr-approve {
+  background: var(--teal);
+  color: #ffffff;
+}
+.btn-appr-approve:hover {
+  background: var(--teal-dark);
+}
+.btn-appr-reject {
+  background: #ffffff;
+  border-color: #fca5a5;
+  color: #ef4444;
+}
+.btn-appr-reject:hover {
+  background: #fee2e2;
+}
+.btn-appr-view {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+.btn-appr-view:hover {
+  background: #f1f5f9;
+}
+.btn-appr-print {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+.btn-appr-print:hover {
+  background: #f1f5f9;
+}
+
+/* --- Tab 3 (Total Leave) & Tables: Edit & Delete SVG Icon Buttons --- */
+.btn-icon-table {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.btn-icon-table:hover {
+  background: #f8fafc;
+  color: var(--teal);
+  border-color: var(--teal-light);
+  transform: translateY(-1px);
+}
+.btn-icon-table.btn-icon-delete:hover {
+  background: #fef2f2;
+  color: #ef4444;
+  border-color: #fca5a5;
+}
+
+/* --- Signature Upload & Digital Ink with Auto-White Background --- */
+.sig-capture-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  width: 100%;
+}
+.sig-preview-box {
+  width: 100%;
+  max-width: 240px;
+  height: 52px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+  overflow: hidden;
+  position: relative;
+}
+.sig-preview-box.has-sig {
+  border: 1px solid transparent;
+  background: transparent;
+}
+.sig-placeholder-hint {
+  font-size: 9.5px;
+  color: #94a3b8;
+  font-style: italic;
+  pointer-events: none;
+  user-select: none;
+}
+.sig-preview-img {
+  max-height: 48px;
+  max-width: 95%;
+  object-fit: contain;
+  display: block;
+}
+.sig-tools-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.btn-sig-pill {
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.btn-sig-pill:hover {
+  background: #e2e8f0;
+}
+.btn-sig-pill.pill-stamp {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+.btn-sig-pill.pill-stamp:hover {
+  background: #d1fae5;
+}
+.btn-sig-pill.pill-clear {
+  color: #ef4444;
+}
+.btn-sig-pill.pill-clear:hover {
+  background: #fee2e2;
+}
+
+/* Official Approved / Disapproved Stamp Badges */
+.paper-check-badge-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  margin-right: 12px;
+}
+.paper-check-badge-label input[type="checkbox"] {
+  display: none;
+}
+.paper-check-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  border: 1.5px solid #cbd5e1;
+  color: #64748b;
+  background: #f8fafc;
+  transition: all 0.15s ease;
+}
+.paper-check-badge-label input[type="checkbox"]:checked + .paper-check-badge.approved {
+  background: #ecfdf5;
+  border-color: #10b981;
+  color: #047857;
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.2);
+}
+.paper-check-badge-label input[type="checkbox"]:checked + .paper-check-badge.disapproved {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #b91c1c;
+  box-shadow: 0 1px 4px rgba(239, 68, 68, 0.2);
+}
+
+@media print {
+  .no-print, .sig-tools-row {
+    display: none !important;
+  }
+  .sig-preview-box {
+    border: none !important;
+  }
 }
 
 /* ==========================================================================
