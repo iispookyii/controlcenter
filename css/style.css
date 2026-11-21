@@ -825,6 +825,78 @@ input, select, textarea {
 .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--ink-dim); }
 
 .topbar-actions { display: flex; align-items: center; gap: 12px; }
+
+/* Topbar User Chip & Logout */
+.topbar-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px 4px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  margin-left: 6px;
+}
+
+.user-avatar-mini {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--teal);
+  color: #ffffff;
+  font-family: var(--font-head);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-meta-mini {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.user-name-mini {
+  font-family: var(--font-head);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role-mini {
+  font-size: 10px;
+  color: var(--teal-dark);
+  font-weight: 600;
+}
+
+.btn-topbar-logout {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  color: var(--ink-dim);
+  font-family: var(--font-head);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-topbar-logout:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
 .btn-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); color: var(--ink-dim); position: relative; }
 .btn-icon:hover { background: var(--surface-2); color: var(--teal-dark); }
 .notif-badge {

@@ -252,39 +252,60 @@ const MODULES = [
 
 function renderSidebar() {
   const list = $q("#navList");
-  const footer = $q("#navFooter");
+  if (!list) return;
+
+  const NAV_ITEMS = [
+    { key: "dashboard", label: "Dashboard", hash: "#/dashboard", svg: `<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
+    { key: "voucher", label: "Auto Voucher", hash: "#/autovoucher", svg: `<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="14 2 14 8 20 8" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
+    { key: "cashflow", label: "Cash Flow", hash: "#/cashflow", svg: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 6v12M17 10h-7a2.5 2.5 0 000 5h5a2.5 2.5 0 010 5H7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>` },
+    { key: "payroll", label: "Auto Payroll", hash: "#/autopayroll", svg: `<svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/><line x1="2" y1="10" x2="22" y2="10" stroke="currentColor" stroke-width="2.2"/><circle cx="7" cy="15" r="1" fill="currentColor"/></svg>` },
+    { key: "blogger", label: "Blogger Automation", hash: "#/blogger", svg: `<svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
+    { key: "leave", label: "Online Leave", hash: "#/onlineleavefiling", svg: `<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2.2"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2.2"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2.2"/></svg>` },
+    { key: "overtime", label: "Overtime", hash: "#/overtime", svg: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2.2"/><polyline points="12 6 12 12 16 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>` },
+    { key: "invoice", label: "Invoices", hash: "#/invoice", svg: `<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2.2"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2.2"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2.2"/><polyline points="10 9 9 9 8 9" stroke="currentColor" stroke-width="2.2"/></svg>` },
+    { key: "tasks", label: "Tasks", hash: "#/tasks", svg: `<svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>` },
+    { key: "staff", label: "Staff Enrollment", hash: "#/staff", svg: `<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="9" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>` },
+    { key: "controls", label: "Controls Checklist", hash: "#/controls", svg: `<svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>` },
+    { key: "audit", label: "Audit Logs", hash: "#/audit", svg: `<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>` },
+    { key: "admin", label: "Admins", hash: "#/admin", svg: `<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M6 20v-2a6 6 0 0112 0v2" fill="none" stroke="currentColor" stroke-width="2.2"/><line x1="19" y1="11" x2="23" y2="11" stroke="currentColor" stroke-width="2.2"/></svg>` }
+  ];
+
   list.innerHTML = "";
-  MODULES.forEach(m => {
-    const showAdmin = (m.key === "admin" || m.key === "audit");
-    if (showAdmin && !isAdmin()) return;
+  NAV_ITEMS.forEach(m => {
+    if ((m.key === "admin" || m.key === "audit") && !isAdmin()) return;
     const li = document.createElement("li");
     li.className = "nav-item";
-    li.innerHTML = `<a class="nav-link" data-module="${m.key}" href="#">
-      <svg viewBox="0 0 24 24"><path d="M12 2L15 18H9L12 2Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      ${m.icon} ${m.label}
+    li.innerHTML = `<a class="nav-link" data-module="${m.key}" href="${m.hash}">
+      ${m.svg}
+      <span>${m.label}</span>
     </a>`;
     list.appendChild(li);
   });
-  if (isAdmin()) {
-    const li = document.createElement("li");
-    li.className = "nav-item";
-    li.innerHTML = `<a class="nav-link" data-module="admin" href="#">
-      <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><line x1="18" y1="8" x2="23" y2="4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Admins
-    </a>`;
-    list.appendChild(li);
-  }
-  footer.innerHTML = `
-    <div class="user-chip">
-      <div class="user-avatar">${currentUserInitials()}</div>
-      <div><div class="name">${escapeHtml(currentUserName())}</div><div class="role">${currentUser ? (currentUser.role === "admin" ? "Main Admin" : "Staff") : "Staff"}</div></div>
-    </div>
-    <button class="btn-logout" id="btnLogout"><span>Sign Out</span><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 17 21 12 16 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><line x1="21" y1="12" x2="14" y2="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-  `;
-  $q("#btnLogout").onclick = logout;
 }
 
 function renderTopbarUser() {
-  // handled in sidebar
+  const container = $q(".topbar-actions");
+  if (!container) return;
+  let userBox = $q("#topbarUserChip");
+  if (!userBox) {
+    userBox = document.createElement("div");
+    userBox.id = "topbarUserChip";
+    userBox.className = "topbar-user-chip";
+    container.appendChild(userBox);
+  }
+  userBox.innerHTML = `
+    <div class="user-avatar-mini" title="${currentUser ? currentUser.email : ''}">${currentUserInitials()}</div>
+    <div class="user-meta-mini">
+      <div class="user-name-mini">${escapeHtml(currentUserName())}</div>
+      <div class="user-role-mini">${currentUser ? (currentUser.role === "admin" ? "Super Admin" : "Staff") : "Admin"}</div>
+    </div>
+    <button class="btn-topbar-logout" id="btnLogout" title="Sign Out">
+      <svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 17 21 12 16 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="21" y1="12" x2="14" y2="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Logout</span>
+    </button>
+  `;
+  const btn = $q("#btnLogout");
+  if (btn) btn.onclick = logout;
 }
 
 function setActiveNav(key) {
