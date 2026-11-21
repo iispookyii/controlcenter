@@ -16,11 +16,14 @@ const SEED = {
     { id: "a1", email: "dcchamie25@gmail.com", name: "Chamie D.", role: "admin", status: "active", createdAt: new Date().toISOString() }
   ],
   // Staff / employees enrolled in the system
+  // Paid leave: 5 days per year, eligible 1 year after permanent date
+  // contractStartDate = start of contract; permanentDate = when became permanent (leave eligibility basis)
   employees: [
-    { id: "e1", email: "actianj@gmail.com", name: "Angelina A. Aquino", type: "supervisor", status: "Active", joinDate: new Date().toISOString().split("T")[0], salary: 0, leaveBalance: 14, enrolled: true },
-    { id: "e2", email: "actitrish0303@gmail.com", name: "Trisha Manager", type: "manager", status: "Active", joinDate: new Date().toISOString().split("T")[0], salary: 0, leaveBalance: 0, enrolled: true },
-    { id: "e3", email: "maria@office.local", name: "Maria Santos", type: "staff", status: "Active", joinDate: "2023-01-15", salary: 28000, leaveBalance: 14, enrolled: true },
-    { id: "e4", email: "john@office.local", name: "John Reyes", type: "staff", status: "Active", joinDate: "2022-06-10", salary: 32000, leaveBalance: 10, enrolled: true }
+    { id: "e1", email: "actianj@gmail.com", name: "Angelina A. Aquino", type: "supervisor", status: "Active", joinDate: new Date().toISOString().split("T")[0], contractStartDate: new Date().toISOString().split("T")[0], permanentDate: new Date().toISOString().split("T")[0], salary: 0, leaveBalance: 14, enrolled: true, leaveEntitlement: 5, leaveType: "paid" },
+    { id: "e2", email: "actitrish0303@gmail.com", name: "Danica R. Tuliao", type: "staff", status: "Active", joinDate: "2022-10-03", contractStartDate: "2022-10-03", permanentDate: "2022-10-03", salary: 0, leaveBalance: 5, enrolled: true, leaveEntitlement: 5, leaveType: "paid" },
+    { id: "e3", email: "charmaine.mallillin@gmail.com", name: "Charmaine Mallillin", type: "regular", status: "Active", joinDate: "2022-10-03", contractStartDate: "2022-10-03", permanentDate: "2022-10-03", salary: 0, leaveBalance: 5, enrolled: true, leaveEntitlement: 5, leaveType: "paid" },
+    { id: "e4", email: "maria@office.local", name: "Maria Santos", type: "staff", status: "Active", joinDate: "2023-01-15", contractStartDate: "2023-01-15", permanentDate: "2023-01-15", salary: 28000, leaveBalance: 14, enrolled: true, leaveEntitlement: 5, leaveType: "paid" },
+    { id: "e5", email: "john@office.local", name: "John Reyes", type: "staff", status: "Active", joinDate: "2022-06-10", contractStartDate: "2022-06-10", permanentDate: "2022-06-10", salary: 32000, leaveBalance: 10, enrolled: true, leaveEntitlement: 5, leaveType: "paid" }
   ],
   sessions: [],
   vouchers: [],

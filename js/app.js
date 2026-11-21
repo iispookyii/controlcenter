@@ -989,13 +989,40 @@ function renderQR(text, containerId) {
 /* ==========================================================================
    MODULE: LEAVE (filing + balance tracker)
    ========================================================================== */
+/* ---------- Leave eligibility: 5 paid leave days per year, eligible 1 year after start date ---------- */
+function leaveEligible(emp) {
+  if (!emp) return { eligible: false, entitlement: 0, years: 0, message: "Not enrolled as employee" };
+  const permDateStr = emp.permanentDate || emp.joinDate;
+  if (!permDateStr) return { eligible: false, entitlement: 0, years: 0, message: "No permanent date on file" };
+  const start = new Date(permDateStr);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const oneYearLater = new Date(start); oneYearLater.setFullYear(start.getFullYear() + 1);
+  const years = Math.floor((today - start) / (1000*60*60*24*365.25));
+  const entitlement = years >= 1 ? 5 : 0;
+  return {
+    eligible: today >= oneYearLater,
+    entitlement,
+    years,
+    permDate: permDateStr,
+    message: today < oneYearLater ? "Not yet eligible — paid leave starts 1 year after " + fmtDate(permDateStr) : "Eligible: " + entitlement + " paid leave day(s) per year"
+  };
+}
+
 function renderLeave(el) {
-  const myEmp = state.employees.find(e => e.email === currentUser.email) || null;
-  const isPerm = myEmp ? myEmp.type === "permanent" : false;
+  const myLeave = myEmp ? leaveEligible(myEmp) : { eligible: false, entitlement: 0, years: 0, message: "Not enrolled as employee" };
   const pendingMy = state.leaves.filter(l => l.employeeEmail === currentUser.email && l.status === "pending").length;
 
   const adminCard = isAdmin() ? `
   <div class="card" style="margin-top:20px;">
+    <div class="card-header"><h3>Employee Leave List & Start Dates</h3></div>
+    <div class="card-body">
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Date Started</th><th>Leave Entitlement</th><th>Balance</th><th>Status</th></tr></thead>
+        <tbody id="empLeaveList"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card" style="margin-top:12px;">
     <div class="card-header"><h3>All Leave Requests (Admin)</h3><div class="card-actions"><button class="btn-sm" onclick="appNavigate('leave')">Refresh</button></div></div>
     <div class="card-body">
       <table>
@@ -1007,20 +1034,21 @@ function renderLeave(el) {
   ` : "";
 
   const myName = currentUser ? currentUser.name : "";
-  const myEmail = currentUser ? currentUser.email : "";
 
   el.innerHTML = `
     <div class="module-header">
       <div>
         <h2>Leave Filing</h2>
-        <div class="sub">Anyone can file leave online. Permanent employees get leave balance tracking.</div>
+        <div class="sub">${myEmp ? "Start date: " + fmtDate(myEmp.joinDate) + ". " + myLeave.message : "Not enrolled as an employee."}</div>
       </div>
-      <button class="btn-sm teal" onclick="appOpenLeaveModal()">+ File Leave</button>
+      ${myEmp && myLeave.eligible ? `<button class="btn-sm teal" onclick="appOpenLeaveModal()">+ File Leave</button>` : `<button class="btn-sm" disabled style="opacity:0.5;">Not yet eligible for paid leave (needs 1 year from start date)</button>`}
     </div>
 
     <div class="kpi-row">
-      <div class="kpi"><div class="kpi-label">Employee Type</div><div class="kpi-value">${isPerm ? "Permanent" : "Staff / Other"}</div><div class="kpi-delta neu">${escapeHtml(myName)}</div></div>
-      <div class="kpi"><div class="kpi-label">Leave Balance</div><div class="kpi-value">${isPerm ? (myEmp.leaveBalance || 0) : "—"}</div><div class="kpi-delta neu">${isPerm ? "days remaining" : "online leave only"}</div></div>
+      <div class="kpi"><div class="kpi-label">Employee Type</div><div class="kpi-value">${myEmp ? escapeHtml(myEmp.type) : "—"}</div><div class="kpi-delta neu">${escapeHtml(myName)}</div></div>
+      <div class="kpi"><div class="kpi-label">Date Started</div><div class="kpi-value">${myEmp ? fmtDate(myEmp.joinDate) : "—"}</div><div class="kpi-delta neu">${myLeave.years} year(s) of service</div></div>
+      <div class="kpi"><div class="kpi-label">Paid Leave Entitlement</div><div class="kpi-value">${myLeave.entitlement} days</div><div class="kpi-delta neu">per year</div></div>
+      <div class="kpi"><div class="kpi-label">Leave Balance</div><div class="kpi-value">${myEmp ? (myEmp.leaveBalance || 0) : "—"}</div><div class="kpi-delta neu">${myEmp ? "days remaining" : "—"}</div></div>
       <div class="kpi"><div class="kpi-label">Pending Requests</div><div class="kpi-value">${pendingMy}</div><div class="kpi-delta neu">yours</div></div>
       <div class="kpi"><div class="kpi-label">Total on File</div><div class="kpi-value">${state.leaves.length}</div><div class="kpi-delta neu">leave records</div></div>
     </div>
@@ -1051,6 +1079,23 @@ function renderLeave(el) {
     </tr>
   `).join("") || `<tr><td colspan="7" style="text-align:center;color:var(--ink-dim);padding:20px;">No leave requests</td></tr>`;
 
+  const elEmp = $q("#empLeaveList");
+  if (elEmp) {
+    elEmp.innerHTML = state.employees.map(emp => {
+      const elig = leaveEligible(emp);
+      return `<tr>
+        <td>${escapeHtml(emp.name)}</td>
+        <td>${escapeHtml(emp.email)}</td>
+        <td><span class="badge badge-info" style="text-transform:none;">${escapeHtml(emp.type)}</span></td>
+        <td>${fmtDate(emp.contractStartDate || emp.joinDate)}</td>
+        <td>${fmtDate(emp.permanentDate || emp.joinDate)}</td>
+        <td>${elig.entitlement} days/year</td>
+        <td>${emp.leaveBalance || 0} days</td>
+        <td><span class="badge ${emp.status==='Active'?'badge-bg':'badge-error'}">${escapeHtml(emp.status)}</span></td>
+      </tr>`;
+    }).join("");
+  }
+
   const ta = $q("#leaveAdminList");
   if (ta) {
     ta.innerHTML = state.leaves.map(l => `
@@ -1076,7 +1121,7 @@ function renderLeave(el) {
 
 function appOpenLeaveModal() {
   const myEmp = state.employees.find(e => e.email === currentUser.email);
-  const isPerm = myEmp ? myEmp.type === "permanent" : false;
+  const myLeave = myEmp ? leaveEligible(myEmp) : { eligible: false, entitlement: 0 };
   const empName = currentUser ? currentUser.name : "";
   const empEmail = currentUser ? currentUser.email : "";
   const empBalance = myEmp ? (myEmp.leaveBalance || 0) : 0;
@@ -1115,19 +1160,23 @@ function appOpenLeaveModal() {
             <label>Reason</label>
             <textarea id="leaveReason" placeholder="Why are you filing leave?"></textarea>
           </div>
-          ${isPerm ? `<div class="field"><label>Your Leave Balance</label><input type="number" id="leaveBal" value="${empBalance}" readonly style="background:var(--surface-2);"></div>` : `<div class="field" style="grid-column:1/-1;"><div class="hint">Online leave filing — balance not deducted for non-permanent staff.</div></div>`}
+          <div class="field">
+            <label>Paid Leave Balance</label>
+            <input type="number" id="leaveBal" value="${empBalance}" readonly style="background:var(--surface-2);">
+          </div>
+          <div class="hint" style="grid-column:1/-1;">Max ${myLeave.entitlement} paid leave day(s) per year. Eligible since 1 year after permanent date (${fmtDate(myLeave.permDate)}).</div>
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn-sm" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-        <button class="btn-sm teal" onclick="appSubmitLeave('${isPerm}')">Submit Leave</button>
+        <button class="btn-sm teal" onclick="appSubmitLeave()">Submit Leave</button>
       </div>
     </div>
   `;
   $q("#modals").appendChild(mod);
 }
 
-function appSubmitLeave(isPerm) {
+function appSubmitLeave() {
   const empName = $q("#leaveEmpName").value.trim();
   const empEmail = $q("#leaveEmpEmail").value.trim();
   const type = $q("#leaveType").value;
@@ -1140,10 +1189,9 @@ function appSubmitLeave(isPerm) {
   const d1 = new Date(from), d2 = new Date(to);
   const calcDays = Math.ceil((d2 - d1) / (1000*60*60*24)) + 1;
   if (isNaN(days) || days < 1) { alert("Enter valid number of days"); return; }
-  if (isPerm) {
-    const myEmp = state.employees.find(e => e.email === currentUser.email);
-    if (myEmp && days > (myEmp.leaveBalance || 0)) { alert("Insufficient leave balance."); return; }
-  }
+  const myEmp = state.employees.find(e => e.email === currentUser.email);
+  const myLeave = myEmp ? leaveEligible(myEmp) : null;
+  if (myLeave && days > (myEmp.leaveBalance || 0)) { alert("Insufficient leave balance."); return; }
   const l = {
     id: "l" + Date.now(),
     employeeName: empName,
@@ -1166,7 +1214,8 @@ function appLeaveAction(id, status) {
   l.approvedBy = currentUser.email;
   if (status === "approved") {
     const emp = state.employees.find(e => e.email === l.employeeEmail);
-    if (emp && emp.type === "permanent") emp.leaveBalance = Math.max(0, (emp.leaveBalance || 0) - l.days);
+    const elig = emp ? leaveEligible(emp) : null;
+    if (elig && elig.eligible) emp.leaveBalance = Math.max(0, (emp.leaveBalance || 0) - l.days);
   }
   audit("leave_" + status, l.id, `${escapeHtml(l.type)} for ${escapeHtml(l.employeeName)}`);
   persist();
