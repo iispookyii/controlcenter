@@ -66,6 +66,7 @@ module.exports = (req, res) => {
         state.sessions.push(session);
         state.audit.push({ id: "aud_" + Date.now(), userId: user.id, email: user.email, action: "login", target: user.email, meta: "Signed in with Google", at: new Date().toISOString() });
         save(state);
+        res.setHeader("Set-Cookie", `cc_sid=${session.id}; Path=/; SameSite=Lax`);
         return json(res, 200, { ok: true, user, sessionId: session.id });
       } catch (e) {
         return json(res, 500, { error: "Login failed" });

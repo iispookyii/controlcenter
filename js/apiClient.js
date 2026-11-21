@@ -70,7 +70,11 @@ export class ApiClient {
     if (!gmail.endsWith("@gmail.com")) throw new Error("Only Gmail accounts are allowed.");
     if (gmail !== "dcchamie25@gmail.com") throw new Error("Access denied. Only the main admin (dcchamie25@gmail.com) can sign in.");
     const res = await this._call("POST", "/api/auth/login", { email: gmail });
-    if (res && res.ok) { this.useApi = true; return { user: res.user }; }
+    if (res && res.ok) {
+      if (res.sessionId) { try { document.cookie = `cc_sid=${res.sessionId}; Path=/; SameSite=Lax`; } catch(_) {} }
+      this.useApi = true;
+      return { user: res.user };
+    }
     // fallback: local-only login
     const state = lsState();
     let user = state.users.find(u => u.email.toLowerCase() === gmail);
