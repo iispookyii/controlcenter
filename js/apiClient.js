@@ -34,11 +34,19 @@ function lsLoad(k, def) {
 function lsSave(k, v) { try { localStorage.setItem(lsKey(k), JSON.stringify(v)); } catch (e) {} }
 
 let _cache = null;
+const SUPER_ADMINS = ["actinst.admin@gmail.com", "dcchamie25@gmail.com"];
+
 function lsState() {
   if (!_cache) {
     _cache = lsLoad("state", {
-      users: [{ id:"u1", email:"dcchamie25@gmail.com", name:"Chamie D.", role:"admin", status:"active", createdAt: new Date().toISOString() }],
-      admins: [{ id:"a1", email:"dcchamie25@gmail.com", name:"Chamie D.", role:"admin", status:"active", createdAt: new Date().toISOString() }],
+      users: [
+        { id:"u0", email:"actinst.admin@gmail.com", name:"ACTI Admin", role:"admin", status:"active", createdAt: new Date().toISOString() },
+        { id:"u1", email:"dcchamie25@gmail.com", name:"Chamie D.", role:"admin", status:"active", createdAt: new Date().toISOString() }
+      ],
+      admins: [
+        { id:"a0", email:"actinst.admin@gmail.com", name:"ACTI Admin", role:"admin", status:"active", createdAt: new Date().toISOString() },
+        { id:"a1", email:"dcchamie25@gmail.com", name:"Chamie D.", role:"admin", status:"active", createdAt: new Date().toISOString() }
+      ],
       sessions: [], vouchers: [], cashflow: [], payroll: [], blogs: [], invoices: [],
       leaves: [], overtime: [], tasks: [], audit: [], notifications: []
     });
@@ -68,7 +76,7 @@ export class ApiClient {
   async login(email) {
     const gmail = String(email || "").trim().toLowerCase();
     if (!gmail.endsWith("@gmail.com")) throw new Error("Only Gmail accounts are allowed.");
-    if (gmail !== "dcchamie25@gmail.com") throw new Error("Access denied. Only the main admin (dcchamie25@gmail.com) can sign in.");
+    if (!SUPER_ADMINS.includes(gmail)) throw new Error("Access denied. Only authorized super admins (" + SUPER_ADMINS.join(" or ") + ") can sign in.");
     const res = await this._call("POST", "/api/auth/login", { email: gmail });
     if (res && res.ok) {
       if (res.sessionId) { try { document.cookie = `cc_sid=${res.sessionId}; Path=/; SameSite=Lax`; } catch(_) {} }

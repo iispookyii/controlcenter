@@ -6,7 +6,8 @@
 
 import { api } from "./apiClient.js";
 
-const ADMIN_EMAIL = "dcchamie25@gmail.com";
+const SUPER_ADMINS = ["actinst.admin@gmail.com", "dcchamie25@gmail.com"];
+const ADMIN_EMAIL = "actinst.admin@gmail.com";
 const STORAGE_PREFIX = "cc_";
 
 /* ---------------- Storage helpers (localStorage fallback) ---------------- */
@@ -86,7 +87,8 @@ async function init() {
 function seedIfEmpty() {
   if (state.users.length === 0) {
     state.users = [
-      { id: "u1", email: ADMIN_EMAIL, name: "Chamie D.", role: "admin", createdAt: nowIso() }
+      { id: "u0", email: "actinst.admin@gmail.com", name: "ACTI Admin", role: "admin", createdAt: nowIso() },
+      { id: "u1", email: "dcchamie25@gmail.com", name: "Chamie D.", role: "admin", createdAt: nowIso() }
     ];
     state.employees = [
       { id: "e1", name: "Maria Santos", email: "maria@office.local", type: "permanent", status: "Active", joinDate: "2023-01-15", salary: 28000, leaveBalance: 14 },
@@ -182,7 +184,7 @@ async function logout() {
   window.location.href = "index.html";
 }
 
-function isAdmin() { return currentUser && (currentUser.role === "admin" || currentUser.email === ADMIN_EMAIL); }
+function isAdmin() { return currentUser && (currentUser.role === "admin" || SUPER_ADMINS.includes(currentUser.email.toLowerCase())); }
 function isStaff() { return currentUser && currentUser.role === "staff"; }
 
 function currentUserName() { return currentUser ? currentUser.name : "User"; }
@@ -2077,7 +2079,24 @@ async function initApp() {
     const visualLock = $q("#visualLock");
     const visualDial = $q("#visualDial");
     const wellStatusTag = $q("#wellStatusTag");
+    const adminAccountSelect = $q("#adminAccountSelect");
+    const btnDirectDashboard = $q("#btnDirectDashboard");
     let recaptchaChecked = false;
+
+    if (btnDirectDashboard) {
+      btnDirectDashboard.onclick = (e) => {
+        const selectedEmail = adminAccountSelect ? adminAccountSelect.value : ADMIN_EMAIL;
+        const u = state.users.find(u => u.email.toLowerCase() === selectedEmail.toLowerCase()) || {
+          id: selectedEmail === "actinst.admin@gmail.com" ? "u0" : "u1",
+          email: selectedEmail,
+          name: selectedEmail === "actinst.admin@gmail.com" ? "ACTI Admin" : "Chamie D.",
+          role: "admin"
+        };
+        currentUser = u;
+        sessionStorage.setItem("cc_user", u.id);
+        localStorage.setItem("cc_user", u.id);
+      };
+    }
 
     const toggleRecaptcha = () => {
       recaptchaChecked = !recaptchaChecked;
@@ -2151,7 +2170,8 @@ async function initApp() {
         toggleRecaptcha();
       }
 
-      await executeGoogleLogin(ADMIN_EMAIL);
+      const emailToUse = adminAccountSelect ? adminAccountSelect.value : ADMIN_EMAIL;
+      await executeGoogleLogin(emailToUse);
     };
 
     if (btnAltAccount) {

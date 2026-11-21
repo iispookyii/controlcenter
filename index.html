@@ -156,6 +156,17 @@
           <input type="text" id="hp" name="hp" tabindex="-1" autocomplete="off">
         </div>
 
+        <!-- Super Admin Account Selector -->
+        <div class="account-selector-box">
+          <label class="account-selector-label" for="adminAccountSelect">Super Admin Account</label>
+          <div class="select-3d-wrapper">
+            <select id="adminAccountSelect" class="select-3d-account">
+              <option value="actinst.admin@gmail.com" selected>actinst.admin@gmail.com (ACTI Super Admin)</option>
+              <option value="dcchamie25@gmail.com">dcchamie25@gmail.com (Main Super Admin)</option>
+            </select>
+          </div>
+        </div>
+
         <!-- 3D Neumorphic reCAPTCHA Box -->
         <div class="auth-recaptcha-card">
           <div class="recaptcha-left-group">
@@ -203,6 +214,13 @@
           <button type="button" class="btn-alt-account" id="btnAltAccount">
             Use another Google account
           </button>
+        </div>
+
+        <!-- Direct Quick Access Link -->
+        <div class="auth-direct-enter-wrap">
+          <a href="dashboard.html" class="btn-direct-dashboard" id="btnDirectDashboard">
+            Directly Enter Dashboard Menu &rarr;
+          </a>
         </div>
       </form>
     </div>

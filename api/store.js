@@ -10,9 +10,11 @@ const DB_PATH = path.join(process.cwd(), "db.json");
 
 const SEED = {
   users: [
+    { id: "u0", email: "actinst.admin@gmail.com", name: "ACTI Admin", role: "admin", status: "active", createdAt: new Date().toISOString() },
     { id: "u1", email: "dcchamie25@gmail.com", name: "Chamie D.", role: "admin", status: "active", createdAt: new Date().toISOString() }
   ],
   admins: [
+    { id: "a0", email: "actinst.admin@gmail.com", name: "ACTI Admin", role: "admin", status: "active", createdAt: new Date().toISOString() },
     { id: "a1", email: "dcchamie25@gmail.com", name: "Chamie D.", role: "admin", status: "active", createdAt: new Date().toISOString() }
   ],
   // Staff / employees enrolled in the system

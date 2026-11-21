@@ -9,6 +9,7 @@
    ========================================================================== */
 
 const { load, save, clone } = require("./store");
+const SUPER_ADMINS = ["actinst.admin@gmail.com", "dcchamie25@gmail.com"];
 
 function json(res, status, body) {
   res.statusCode = status;
@@ -30,7 +31,7 @@ function requireAdmin(req, res) {
   if (!session) return { ok: false, status: 401, error: "Not signed in" };
   const user = state.users.find(u => u.id === session.userId);
   if (!user || user.status === "blocked") return { ok: false, status: 403, error: "Account blocked or not found" };
-  if (user.role !== "admin" && user.email !== "dcchamie25@gmail.com") {
+  if (user.role !== "admin" && !SUPER_ADMINS.includes(user.email.toLowerCase())) {
     return { ok: false, status: 403, error: "Admin access required" };
   }
   return { ok: true, user, state };
@@ -135,8 +136,8 @@ module.exports = (req, res) => {
     const state = load();
     const admin = state.admins.find(a => a.id === id);
     if (!admin) return json(res, 404, { error: "Admin not found" });
-    if (admin.email === "dcchamie25@gmail.com") {
-      return json(res, 403, { error: "Cannot delete the main admin owner" });
+    if (SUPER_ADMINS.includes(admin.email.toLowerCase())) {
+      return json(res, 403, { error: "Cannot delete a super admin owner" });
     }
     state.admins = state.admins.filter(a => a.id !== id);
     state.audit.push({ id: "aud_" + Date.now(), userId: check.user.id, email: check.user.email, action: "admin_deleted", target: admin.email, meta: `${check.user.name} deleted admin ${admin.name}`, at: new Date().toISOString() });
@@ -157,8 +158,8 @@ module.exports = (req, res) => {
         const state = load();
         const admin = state.admins.find(a => a.id === id);
         if (!admin) return json(res, 404, { error: "Admin not found" });
-        if (admin.email === "dcchamie25@gmail.com") {
-          return json(res, 403, { error: "Cannot block the main admin owner" });
+        if (SUPER_ADMINS.includes(admin.email.toLowerCase())) {
+          return json(res, 403, { error: "Cannot block a super admin owner" });
         }
         admin.status = blocked === true ? "blocked" : "active";
         // also block the user record

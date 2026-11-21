@@ -7,7 +7,8 @@
    ========================================================================== */
 
 const { load, save, clone } = require("./store");
-const ADMIN_EMAIL = "dcchamie25@gmail.com";
+const SUPER_ADMINS = ["actinst.admin@gmail.com", "dcchamie25@gmail.com"];
+const ADMIN_EMAIL = "actinst.admin@gmail.com";
 
 function json(res, status, body) {
   res.statusCode = status;
@@ -41,8 +42,8 @@ module.exports = (req, res) => {
         if (!gmail.endsWith("@gmail.com")) {
           return json(res, 400, { error: "Only Gmail accounts are allowed." });
         }
-        if (gmail !== ADMIN_EMAIL.toLowerCase()) {
-          return json(res, 403, { error: "Access denied. Only the main admin (" + ADMIN_EMAIL + ") can sign in." });
+        if (!SUPER_ADMINS.includes(gmail)) {
+          return json(res, 403, { error: "Access denied. Only super admins (" + SUPER_ADMINS.join(" or ") + ") can sign in." });
         }
         const state = load();
         let user = state.users.find(u => u.email.toLowerCase() === gmail);
