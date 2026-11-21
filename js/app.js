@@ -190,7 +190,10 @@ function shellDashboard() {
   app.classList.add("visible");
   renderSidebar();
   renderTopbarUser();
-  renderModule("dashboard");
+  // Navigate to module from hash if present, else dashboard
+  const initialKey = hashToModule(window.location.hash || "#/dashboard");
+  currentModule = initialKey;
+  renderModule(initialKey);
   renderNotifBadge();
 }
 
@@ -1029,7 +1032,7 @@ function renderLeave(el) {
     </div>
   </div>
   <div class="card" style="margin-top:12px;">
-    <div class="card-header"><h3>All Leave Requests (Admin)</h3><div class="card-actions"><button class="btn-sm" onclick="appNavigate('leave')">Refresh</button></div></div>
+    <div class="card-header"><h3>All Leave Requests (Admin)</h3><div class="card-actions"><button class="btn-sm" onclick="appNavigate('leave')">Refresh</button><button class="btn-sm teal" onclick="appPrintLeave()">Print Leave</button></div></div>
     <div class="card-body">
       <table>
         <thead><tr><th>Employee</th><th>Email</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
@@ -1228,6 +1231,66 @@ function appLeaveAction(id, status) {
   persist();
   renderLeave($q("#appContent"));
   notif(currentUser.id, `Leave for ${escapeHtml(l.employeeName)} was ${status}.`, "leave");
+}
+
+/* ---------- Printable Leave View ---------- */
+function appPrintLeave() {
+  const win = window.open("", "_blank");
+  const leaves = state.leaves.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const rows = leaves.map(l => {
+    const emp = state.employees.find(e => e.email === l.employeeEmail);
+    const elig = emp ? leaveEligible(emp) : null;
+    return `<tr>
+      <td>${escapeHtml(l.employeeName)}</td>
+      <td>${escapeHtml(l.employeeEmail)}</td>
+      <td>${escapeHtml(emp ? emp.type : "—")}</td>
+      <td>${fmtDate(emp ? (emp.permanentDate || emp.joinDate) : "")}</td>
+      <td>${fmtDate(l.from)}</td>
+      <td>${fmtDate(l.to)}</td>
+      <td>${l.days}</td>
+      <td>${escapeHtml(l.reason)}</td>
+      <td><span style="text-transform:uppercase;font-weight:700;color:${l.status==='approved'?'#059669':l.status==='rejected'?'#dc2626':'#d97706'}">${escapeHtml(l.status)}</span></td>
+      <td>${fmtDate(l.createdAt)}</td>
+      ${l.status === 'approved' && l.approvedBy ? `<td>${escapeHtml(l.approvedBy)}</td>` : `<td>—</td>`}
+    </tr>`;
+  }).join("");
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Leave Report — Control Center</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; font-size: 12px; color: #111; padding: 20px; }
+  h1 { color: #0f766e; font-size: 20px; margin-bottom: 4px; }
+  .sub { color: #6b7280; font-size: 12px; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  th, td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: left; font-size: 11px; }
+  th { background: #0f766e; color: #fff; }
+  .footer { margin-top: 20px; font-size: 10px; color: #6b7280; border-top: 1px solid #d1d5db; padding-top: 8px; }
+  @media print { body { padding: 0; } .no-print { display: none; } }
+</style>
+</head>
+<body>
+  <h1>Leave Report — Control Center</h1>
+  <div class="sub">Generated ${new Date().toLocaleDateString("en-PH")} • Total: ${leaves.length} leave record(s)</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Employee</th><th>Email</th><th>Type</th><th>Date Started</th>
+        <th>Leave From</th><th>Leave To</th><th>Days</th><th>Reason</th>
+        <th>Status</th><th>Filed</th><th>Approved By</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="footer">Control Center — Main Admin: dcchamie25@gmail.com • Printed on ${new Date().toLocaleString("en-PH")}</div>
+  <script>window.print();</script>
+</body>
+</html>
+  `;
+  win.document.write(html);
+  win.document.close();
 }
 
 /* ==========================================================================
@@ -1901,8 +1964,76 @@ function updateControlsStatus() {
 /* ==========================================================================
    GLOBAL ROUTER / INIT
    ========================================================================== */
-window.appNavigate = (key) => { if (key !== currentModule) { previousModule = currentModule; } currentModule = key; renderModule(key); closeSidebar(); };
-window.appNavigateBack = () => { if (previousModule) { const prev = previousModule; previousModule = null; currentModule = prev; renderModule(prev); closeSidebar(); } else { appNavigate('dashboard'); } };
+/* ---------- Hash-based URL paths per module ---------- */
+const HASH_TO_MODULE = {
+  "#/dashboard": "dashboard",
+  "#/autovoucher": "voucher",
+  "#/cashflow": "cashflow",
+  "#/autopayroll": "payroll",
+  "#/blogger": "blogger",
+  "#/onlineleavefiling": "leave",
+  "#/overtime": "overtime",
+  "#/invoice": "invoice",
+  "#/tasks": "tasks",
+  "#/staff": "staff",
+  "#/controls": "controls",
+  "#/audit": "audit",
+  "#/admin": "admin"
+};
+const MODULE_TO_HASH = {
+  "dashboard": "#/dashboard",
+  "voucher": "#/autovoucher",
+  "cashflow": "#/cashflow",
+  "payroll": "#/autopayroll",
+  "blogger": "#/blogger",
+  "leave": "#/onlineleavefiling",
+  "overtime": "#/overtime",
+  "invoice": "#/invoice",
+  "tasks": "#/tasks",
+  "staff": "#/staff",
+  "controls": "#/controls",
+  "audit": "#/audit",
+  "admin": "#/admin"
+};
+
+function hashToModule(hash) {
+  return HASH_TO_MODULE[hash] || "dashboard";
+}
+
+function moduleToHash(key) {
+  return MODULE_TO_HASH[key] || "#/dashboard";
+}
+
+window.appNavigate = (key) => {
+  if (key !== currentModule) { previousModule = currentModule; }
+  currentModule = key;
+  window.location.hash = moduleToHash(key);
+  renderModule(key);
+  closeSidebar();
+};
+window.appNavigateBack = () => {
+  if (previousModule) {
+    const prev = previousModule;
+    previousModule = null;
+    currentModule = prev;
+    window.location.hash = moduleToHash(prev);
+    renderModule(prev);
+    closeSidebar();
+  } else {
+    appNavigate('dashboard');
+  }
+};
+
+function handleHashChange() {
+  const key = hashToModule(window.location.hash);
+  if (key !== currentModule) {
+    currentModule = key;
+    renderModule(key);
+    closeSidebar();
+  }
+}
+
+window.addEventListener("hashchange", handleHashChange);
 
 async function initApp() {
   await init();
