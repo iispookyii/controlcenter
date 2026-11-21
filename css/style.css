@@ -1,34 +1,40 @@
 /* ==========================================================================
-   CONTROL CENTER — Office Management System
-   Professional Teal Theme — Clean Sign-In Design
-   Main admin: dcchamie25@gmail.com
+   ACCOUNTING CERTIFICATION & TRAINING INSTITUTE — CONTROL CENTER
+   3D Neumorphic Teal Theme — Identity Verification & Secure Portal
+   Main Admin: dcchamie25@gmail.com
+   Font: Poppins exclusively
    ========================================================================== */
 
-:root {
-  --teal: #0097a7;
-  --teal-dark: #006064;
-  --teal-deep: #003b3f;
-  --teal-light: #4db6ac;
-  --teal-pale: #e0f7fa;
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 
-  --ink: #1a2e33;
-  --ink-dim: #4a6572;
+:root {
+  --teal: #086375;
+  --teal-dark: #054a57;
+  --teal-deep: #023840;
+  --teal-ocean: #065a68;
+  --teal-light: #0d8299;
+  --teal-pale: #e0f2f1;
+  --teal-cyan: #22d3ee;
+  --teal-mint: #2dd4bf;
+
+  --ink: #0f172a;
+  --ink-dim: #475569;
   --bg: #f4f9fa;
   --surface: #ffffff;
   --surface-2: #eef6f8;
   --line: #cfe6ea;
 
-  --error: #d32f2f;
-  --success: #2e7d32;
-  --warning: #f9a825;
+  --error: #ef4444;
+  --success: #10b981;
+  --warning: #f59e0b;
 
-  --shadow: 0 4px 12px rgba(0, 96, 100, 0.08);
-  --shadow-sm: 0 2px 6px rgba(0, 96, 100, 0.04);
+  --shadow: 0 4px 12px rgba(8, 99, 117, 0.08);
+  --shadow-sm: 0 2px 6px rgba(8, 99, 117, 0.04);
   --radius: 14px;
   --radius-sm: 8px;
 
-  --font-head: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-body: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-head: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-body: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   --transition: 200ms ease;
 }
@@ -61,187 +67,529 @@ input, select, textarea {
   font-size: 1rem;
 }
 
-::selection { background: var(--teal); color: #fff; }
+::selection { background: var(--teal-mint); color: #022c33; }
 
-/* ========================= LOGIN PAGE ========================= */
-.login-shell {
-  height: 100vh;
+/* ==========================================================================
+   3D NEUMORPHIC TEAL AUTHENTICATION / VERIFY YOUR IDENTITY (IMAGE 1, 2, 3)
+   ========================================================================== */
+
+.auth-3d-body {
+  min-height: 100vh;
   width: 100vw;
-  background: var(--bg);
+  background: radial-gradient(circle at 20% 20%, #0d7f92 0%, #085a68 35%, #043841 70%, #022329 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow-x: hidden;
+  position: relative;
+  font-family: var(--font-body);
+}
+
+.auth-page-container {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Background ripple wave circles radiating in deep teal */
+.bg-ripple-waves {
   position: fixed;
-  top: 0; left: 0;
-  z-index: 50;
-  padding: 0;
-}
-
-@media (min-width: 900px) {
-  .login-shell {
-    padding: 0;
-  }
-}
-
-/* Left teal panel — desktop only */
-.login-left {
-  display: none;
-  position: absolute;
-  top: 0; left: 0;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(135deg, #004d40 0%, #006064 55%, #0097a7 100%);
+  right: -120px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1100px;
+  height: 850px;
+  pointer-events: none;
   z-index: 1;
 }
 
-@media (min-width: 900px) {
-  .login-left { display: block; }
-}
-
-.left-panel {
-  padding: 60px 40px;
-  height: 100%;
+/* Top ACTI Seal & Brand Title */
+.acti-brand-header {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  color: #fff;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
+  z-index: 5;
+  user-select: none;
 }
 
-.left-panel h1 {
-  font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 800;
-  margin: 0 0 12px;
-  letter-spacing: -0.5px;
-}
-
-.left-panel p {
-  font-size: 1.1rem;
-  color: var(--teal-pale);
-  margin: 0;
-  font-weight: 600;
-}
-
-/* Right sign-in card */
-.login-right {
-  width: 100%;
-  height: 100%;
+.acti-seal-badge {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: #ffffff;
+  padding: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
-  z-index: 2;
-  padding: 20px;
+  box-shadow: 0 12px 30px rgba(2, 28, 33, 0.45);
+  transition: transform 0.3s ease;
 }
 
-@media (min-width: 900px) {
-  .login-right {
-    position: relative;
-    width: 50%;
-    height: 100%;
-  }
+.acti-seal-badge:hover {
+  transform: scale(1.04);
 }
 
-.login-card {
-  background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: 0 24px 60px rgba(0,0,0,0.15);
+.acti-brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.acti-title {
+  font-family: var(--font-head);
+  font-size: clamp(1.35rem, 2.6vw, 1.7rem);
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.18;
+  letter-spacing: -0.4px;
+  margin: 0;
+  text-shadow: 0 2px 8px rgba(2, 28, 33, 0.35);
+}
+
+/* Main 3D Neumorphic Card */
+.auth-3d-card {
+  display: flex;
+  flex-direction: row;
   width: 100%;
-  max-width: 440px;
+  max-width: 840px;
+  min-height: 440px;
+  border-radius: 32px;
+  background: linear-gradient(145deg, #096878 0%, #064e5b 45%, #043a44 100%);
+  box-shadow:
+    22px 22px 65px #021a1f,
+    -12px -12px 42px rgba(18, 142, 163, 0.32),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 24px;
+  gap: 32px;
+  position: relative;
+  z-index: 5;
+  backdrop-filter: blur(8px);
+  box-sizing: border-box;
+}
+
+/* Left Panel: Recessed Inset Well */
+.auth-3d-left {
+  flex: 0 0 340px;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-3d-well {
+  position: relative;
+  flex: 1;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #032b32 0%, #053b45 100%);
+  box-shadow:
+    inset 8px 8px 18px #021c21,
+    inset -8px -8px 18px #085563;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
   overflow: hidden;
 }
 
-.card-header {
-  padding: 40px 40px 20px;
+/* Concentric ripples inside well */
+.well-ripples {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 320px;
+  height: 320px;
+  pointer-events: none;
+  z-index: 1;
 }
 
-.card-header h2 {
-  font-weight: 800;
-  font-size: 1.75rem;
-  color: var(--ink);
+/* 3D Padlock and 3D Dial Visual Wrappers */
+.visual-lock-wrap,
+.visual-dial-wrap {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 220px;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lock-3d-svg {
+  filter: drop-shadow(0 14px 24px rgba(2, 22, 27, 0.45));
+  transition: transform 0.3s ease;
+}
+
+.lock-3d-svg:hover {
+  transform: scale(1.03);
+}
+
+/* Status LED Pulse */
+.led-pulse-dot {
+  animation: ledGlowPulse 2s infinite ease-in-out;
+}
+
+@keyframes ledGlowPulse {
+  0%, 100% { fill: #22d3ee; filter: drop-shadow(0 0 2px #22d3ee); }
+  50% { fill: #38bdf8; filter: drop-shadow(0 0 8px #38bdf8); }
+}
+
+.dial-3d-svg {
+  filter: drop-shadow(0 14px 26px rgba(2, 22, 27, 0.5));
+}
+
+.dial-check-path {
+  animation: checkmarkPop 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes checkmarkPop {
+  0% { stroke-dasharray: 80; stroke-dashoffset: 80; opacity: 0; }
+  100% { stroke-dasharray: 80; stroke-dashoffset: 0; opacity: 1; }
+}
+
+/* Well Footer */
+.well-footer {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 10px;
+  position: relative;
+  z-index: 2;
+  user-select: none;
+}
+
+.well-secure-label {
+  font-family: var(--font-head);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #5b929c;
+  letter-spacing: 1.5px;
+}
+
+.well-protected-label {
+  font-family: var(--font-head);
+  font-size: 11px;
+  font-weight: 600;
+  color: #a4cbd2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-green-dot {
+  width: 7.5px;
+  height: 7.5px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  display: inline-block;
+}
+
+/* Right Panel: Authentication Form */
+.auth-3d-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 12px 8px 0;
+}
+
+.auth-header-block {
+  margin-bottom: 22px;
+}
+
+.auth-category-tag {
+  display: block;
+  font-family: var(--font-head);
+  font-size: 11px;
+  font-weight: 700;
+  color: #2dd4bf;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.auth-main-title {
+  font-family: var(--font-head);
+  font-size: clamp(1.65rem, 2.5vw, 2.1rem);
+  font-weight: 700;
+  color: #ffffff;
   letter-spacing: -0.5px;
-  margin: 0 0 8px;
+  margin: 0 0 8px 0;
+  line-height: 1.2;
 }
 
-.card-header .sub {
-  color: var(--ink-dim);
-  font-size: 0.9rem;
+.auth-sub-desc {
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: #a2cbd2;
+  line-height: 1.5;
   margin: 0;
 }
 
-.login-form {
+/* 6-digit Code Inputs Row */
+.code-boxes-row {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 0 40px 24px;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
-/* Honeypot — hidden */
-.honeypot {
-  position: absolute;
-  left: -9999px;
-  opacity: 0;
+.code-box-input {
+  flex: 1;
+  height: 52px;
+  border-radius: 12px;
+  border: 1.5px solid transparent;
+  background: #032b32;
+  box-shadow:
+    inset 4px 4px 9px #021a1e,
+    inset -3px -3px 7px #095765;
+  color: #ffffff;
+  font-family: var(--font-head);
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  transition: all 0.2s ease;
+  caret-color: #22d3ee;
 }
 
-/* reCAPTCHA simulation */
-.recaptcha-wrap {
+.code-box-input:focus {
+  outline: none;
+  border-color: #22d3ee;
+  box-shadow:
+    inset 3px 3px 6px #021a1e,
+    inset -2px -2px 5px #095765,
+    0 0 14px rgba(34, 211, 238, 0.45);
+  background: #02242a;
+}
+
+.code-box-input.filled {
+  color: #22d3ee;
+}
+
+.code-boxes-row.shake-error {
+  animation: codeShake 0.4s ease-in-out;
+}
+
+@keyframes codeShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+/* 3D Pill Verify Button */
+.btn-3d-verify {
+  width: 100%;
+  height: 48px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: linear-gradient(135deg, #0e8c9e 0%, #0a6f7e 100%);
+  box-shadow:
+    6px 6px 16px #021d22,
+    -4px -4px 12px #0e8798,
+    inset 1px 1px 2px rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  font-family: var(--font-head);
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin: 6px 0 14px;
-}
-
-.recaptcha-box {
-  width: 26px; height: 26px;
-  border: 1.5px solid #767676;
-  border-radius: 4px;
-  background: #fff;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; flex-shrink: 0;
-  user-select: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.recaptcha-box:hover { border-color: var(--teal-dark); }
-.recaptcha-box.checked { border-color: var(--teal); background: var(--teal); box-shadow: 0 0 0 4px rgba(0,151,167,0.15); }
-.recaptcha-box:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-
-.recaptcha-icon {
-  font-size: 14px; line-height: 1; color: #fff;
-  display: none;
-}
-.recaptcha-box.checked .recaptcha-icon { display: block; }
-
-.recaptcha-label {
-  font-size: 0.9rem;
-  color: #333;
-  cursor: pointer;
+  justify-content: center;
   user-select: none;
 }
 
-.login-btn {
+.btn-3d-verify:hover {
+  transform: translateY(-1.5px);
+  box-shadow:
+    8px 8px 20px #021d22,
+    -6px -6px 16px #129bb0;
+  background: linear-gradient(135deg, #129bb0 0%, #0c7c8d 100%);
+}
+
+.btn-3d-verify:active {
+  transform: translateY(1px);
+  box-shadow: inset 4px 4px 8px #032c33;
+}
+
+.btn-3d-verify.verified-btn {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  box-shadow:
+    0 0 20px rgba(16, 185, 129, 0.5),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+/* Google Action Button */
+.btn-3d-google {
   width: 100%;
-  padding: 14px;
-  background: var(--teal);
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 800;
-  border-radius: var(--radius-sm);
-  margin-top: 6px;
-  transition: background 0.2s, transform 0.2s;
-  box-shadow: var(--shadow-sm);
+  height: 44px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(3, 43, 50, 0.65);
+  box-shadow:
+    4px 4px 10px #021d22,
+    -2px -2px 8px #075b68;
+  color: #e0f2f1;
+  font-family: var(--font-head);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 14px;
+  user-select: none;
 }
 
-.login-btn:hover { background: var(--teal-dark); transform: translateY(-1px); }
-.login-btn:active { transform: translateY(0); }
+.btn-3d-google:hover {
+  background: rgba(3, 43, 50, 0.95);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
 
-.login-footer {
-  padding: 20px 40px 40px;
-  font-size: 0.78rem;
-  color: #8aa3ab;
+.btn-3d-google:active {
+  transform: translateY(0);
+}
+
+/* Status / Feedback Line */
+.auth-feedback-status {
+  font-family: var(--font-head);
+  font-size: 12px;
+  font-weight: 500;
+  color: #82aeb6;
   text-align: center;
+  margin-bottom: 14px;
+  min-height: 18px;
+  transition: all 0.3s ease;
 }
 
-/* ========================= DASHBOARD / APP SHELL ========================= */
+.auth-feedback-status.success {
+  color: #34d399;
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(52, 211, 153, 0.45);
+}
+
+.auth-feedback-status.error {
+  color: #f87171;
+  font-weight: 600;
+}
+
+/* Footer: Timer and Resend Code */
+.auth-footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #82aeb6;
+  padding-top: 4px;
+}
+
+.timer-countdown {
+  font-family: var(--font-body);
+}
+
+.timer-digits {
+  color: #2dd4bf;
+  font-weight: 700;
+}
+
+.btn-resend-action {
+  color: #22d3ee;
+  font-family: var(--font-head);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.btn-resend-action:hover {
+  color: #67e8f9;
+  text-decoration: underline;
+}
+
+/* Floating Toast */
+.toast-notify {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  background: #032b32;
+  color: #e0f2f1;
+  border: 1px solid #0d8294;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-family: var(--font-head);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.45);
+  z-index: 100;
+}
+
+.toast-notify.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 820px) {
+  .auth-3d-card {
+    flex-direction: column;
+    max-width: 440px;
+    padding: 20px;
+    gap: 20px;
+  }
+
+  .auth-3d-left {
+    flex: none;
+    width: 100%;
+    height: 250px;
+  }
+
+  .auth-3d-right {
+    padding: 0;
+  }
+
+  .code-boxes-row {
+    gap: 6px;
+  }
+
+  .code-box-input {
+    height: 48px;
+    font-size: 18px;
+    border-radius: 10px;
+  }
+
+  .acti-brand-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+}
+
+/* ==========================================================================
+   DASHBOARD / APP SHELL (FULL SYSTEM PRESERVED WITH POPPINS)
+   ========================================================================== */
+
 .app-shell {
   display: none;
   height: 100vh;
@@ -464,8 +812,10 @@ tr:last-child td { border-bottom: none; }
   font-size: 0.85rem;
   font-weight: 700;
   transition: all 0.2s;
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
 }
-.btn-sm { background: var(--surface-2); color: var(--ink); border: 1px solid var(--line); }
 .btn-sm:hover { background: var(--teal); color: #fff; border-color: var(--teal); }
 .btn-sm.teal { background: var(--teal); color: #fff; }
 .btn-sm.teal:hover { background: var(--teal-dark); }
@@ -478,8 +828,6 @@ tr:last-child td { border-bottom: none; }
 .empty-icon { font-size: 3rem; margin-bottom: 12px; }
 .empty-state h3 { font-weight: 800; margin-bottom: 6px; }
 .empty-state p { font-size: 0.9rem; }
-
-.notif-badge { display: none; }
 
 @media (max-width: 768px) {
   .app-sidebar { position: fixed; left: -100%; transition: left 0.3s; z-index: 35; }

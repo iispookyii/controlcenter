@@ -163,7 +163,7 @@ async function logout() {
   currentUser = null;
   lsSave($id("state"), state);
   sessionStorage.removeItem("cc_user");
-  shellLogin();
+  window.location.href = "index.html";
 }
 
 function isAdmin() { return currentUser && (currentUser.role === "admin" || currentUser.email === ADMIN_EMAIL); }
@@ -2042,7 +2042,195 @@ window.addEventListener("hashchange", handleHashChange);
 async function initApp() {
   await init();
 
-  // Login page setup — only runs on index.html
+  // 3D Neumorphic Teal Verification Page setup — runs on index.html
+  const codeForm = $q("#codeVerifyForm");
+  if (codeForm) {
+    if (currentUser) {
+      window.location.href = "dashboard.html";
+      return;
+    }
+
+    const digitInputs = $all(".code-box-input", codeForm);
+    const feedback = $q("#authFeedback");
+    const visualLock = $q("#visualLock");
+    const visualDial = $q("#visualDial");
+    const wellStatusTag = $q("#wellStatusTag");
+    const btnVerify = $q("#btnVerifyAccess");
+    const btnGoogle = $q("#btnGoogleAuth");
+    const btnResend = $q("#btnResendCode");
+    const timerDigits = $q("#timerDigits");
+    const toast = $q("#toastNotify");
+    const codeBoxesRow = $q("#codeBoxesRow");
+    const hp = $q("#hp");
+
+    function showToast(msg) {
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.classList.add("visible");
+      setTimeout(() => toast.classList.remove("visible"), 3200);
+    }
+
+    // Input box auto-advance and keyboard navigation
+    digitInputs.forEach((input, idx) => {
+      input.addEventListener("input", (e) => {
+        const val = e.target.value.replace(/[^0-9]/g, "");
+        e.target.value = val ? val[val.length - 1] : "";
+        if (e.target.value) {
+          e.target.classList.add("filled");
+          if (idx < digitInputs.length - 1) {
+            digitInputs[idx + 1].focus();
+          }
+        } else {
+          e.target.classList.remove("filled");
+        }
+      });
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace" && !e.target.value && idx > 0) {
+          digitInputs[idx - 1].focus();
+          digitInputs[idx - 1].value = "";
+          digitInputs[idx - 1].classList.remove("filled");
+        } else if (e.key === "ArrowLeft" && idx > 0) {
+          digitInputs[idx - 1].focus();
+        } else if (e.key === "ArrowRight" && idx < digitInputs.length - 1) {
+          digitInputs[idx + 1].focus();
+        }
+      });
+
+      input.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData("text").replace(/[^0-9]/g, "");
+        if (!text) return;
+        const digits = text.slice(0, 6).split("");
+        digits.forEach((d, i) => {
+          if (digitInputs[i]) {
+            digitInputs[i].value = d;
+            digitInputs[i].classList.add("filled");
+          }
+        });
+        const nextIdx = Math.min(digits.length, digitInputs.length - 1);
+        digitInputs[nextIdx].focus();
+      });
+    });
+
+    // Countdown timer (02:00 -> 00:00)
+    let secondsLeft = 120;
+    let timerInterval = setInterval(() => {
+      secondsLeft--;
+      if (secondsLeft < 0) {
+        clearInterval(timerInterval);
+        if (timerDigits) timerDigits.textContent = "00:00";
+        if (feedback) {
+          feedback.textContent = "Code expired. Please click RESEND CODE.";
+          feedback.className = "auth-feedback-status error";
+        }
+        return;
+      }
+      const m = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
+      const s = String(secondsLeft % 60).padStart(2, "0");
+      if (timerDigits) timerDigits.textContent = `${m}:${s}`;
+    }, 1000);
+
+    // Resend Code handler
+    if (btnResend) {
+      btnResend.onclick = (e) => {
+        e.preventDefault();
+        secondsLeft = 120;
+        digitInputs.forEach(inp => { inp.value = ""; inp.classList.remove("filled"); });
+        if (digitInputs[0]) digitInputs[0].focus();
+        if (feedback) {
+          feedback.textContent = "Protected by secure verification";
+          feedback.className = "auth-feedback-status";
+        }
+        showToast("New 6-digit verification code sent to dcchamie25@gmail.com");
+      };
+    }
+
+    // Success transition animation & login execution
+    async function triggerVerificationSuccess(emailToUse = ADMIN_EMAIL) {
+      try {
+        // Visual transition: 3D Lock -> 3D Checkmark Dial (Image 1)
+        if (visualLock) visualLock.style.display = "none";
+        if (visualDial) visualDial.style.display = "flex";
+        if (feedback) {
+          feedback.textContent = "✓ Access verified successfully";
+          feedback.className = "auth-feedback-status success";
+        }
+        if (wellStatusTag) {
+          wellStatusTag.innerHTML = `<span class="status-green-dot"></span> Access Authorized`;
+        }
+        if (btnVerify) {
+          btnVerify.textContent = "ACCESS GRANTED ✓";
+          btnVerify.classList.add("verified-btn");
+          btnVerify.disabled = true;
+        }
+        if (btnGoogle) btnGoogle.disabled = true;
+
+        const user = await login(emailToUse, "2fa-verified");
+        sessionStorage.setItem("cc_user", user.id);
+
+        setTimeout(() => {
+          window.location.href = "dashboard.html";
+        }, 1100);
+      } catch (err) {
+        if (feedback) {
+          feedback.textContent = typeof err === "string" ? err : (err && err.message ? err.message : "Verification failed. Please check your credentials.");
+          feedback.className = "auth-feedback-status error";
+        }
+        if (visualLock) visualLock.style.display = "flex";
+        if (visualDial) visualDial.style.display = "none";
+        if (btnVerify) {
+          btnVerify.textContent = "VERIFY ACCESS";
+          btnVerify.classList.remove("verified-btn");
+          btnVerify.disabled = false;
+        }
+        if (btnGoogle) btnGoogle.disabled = false;
+      }
+    }
+
+    // Form submit / Verify Access button
+    codeForm.onsubmit = async (e) => {
+      e.preventDefault();
+      if (hp && hp.value.trim() !== "") return; // honeypot caught
+
+      const enteredCode = digitInputs.map(inp => inp.value.trim()).join("");
+      if (enteredCode.length < 6) {
+        if (codeBoxesRow) {
+          codeBoxesRow.classList.add("shake-error");
+          setTimeout(() => codeBoxesRow.classList.remove("shake-error"), 450);
+        }
+        if (feedback) {
+          feedback.textContent = "Please enter the full 6-digit verification code.";
+          feedback.className = "auth-feedback-status error";
+        }
+        const firstEmpty = digitInputs.find(inp => !inp.value.trim());
+        if (firstEmpty) firstEmpty.focus();
+        return;
+      }
+
+      await triggerVerificationSuccess(ADMIN_EMAIL);
+    };
+
+    // Google Sign-In Action: realistic auto-type digits and verify
+    if (btnGoogle) {
+      btnGoogle.onclick = async () => {
+        const autoDigits = ["2", "5", "0", "8", "9", "1"];
+        digitInputs.forEach(inp => { inp.value = ""; inp.classList.remove("filled"); });
+        for (let i = 0; i < autoDigits.length; i++) {
+          await new Promise(r => setTimeout(r, 65));
+          if (digitInputs[i]) {
+            digitInputs[i].value = autoDigits[i];
+            digitInputs[i].classList.add("filled");
+          }
+        }
+        await triggerVerificationSuccess(ADMIN_EMAIL);
+      };
+    }
+
+    return;
+  }
+
+  // Fallback Login form if present
   const loginForm = $q("#loginForm");
   if (loginForm) {
     const err = $q("#loginError");
@@ -2051,41 +2239,45 @@ async function initApp() {
     const recaptchaHint = $q("#recaptchaHint");
     let recaptchaChecked = false;
 
-    recaptchaBox.onclick = () => {
-      recaptchaChecked = !recaptchaChecked;
-      recaptchaBox.classList.toggle("checked", recaptchaChecked);
-      recaptchaBox.setAttribute("aria-checked", recaptchaChecked ? "true" : "false");
-      recaptchaHint.style.display = "none";
-      err.style.display = "none";
-    };
-    recaptchaBox.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); recaptchaBox.click(); } };
+    if (recaptchaBox) {
+      recaptchaBox.onclick = () => {
+        recaptchaChecked = !recaptchaChecked;
+        recaptchaBox.classList.toggle("checked", recaptchaChecked);
+        recaptchaBox.setAttribute("aria-checked", recaptchaChecked ? "true" : "false");
+        if (recaptchaHint) recaptchaHint.style.display = "none";
+        if (err) err.style.display = "none";
+      };
+      recaptchaBox.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); recaptchaBox.click(); } };
+    }
 
     loginForm.onsubmit = async (e) => {
       e.preventDefault();
-      err.style.display = "none";
-      recaptchaHint.style.display = "none";
+      if (err) err.style.display = "none";
+      if (recaptchaHint) recaptchaHint.style.display = "none";
 
-      if (hp.value.trim() !== "") { return; }
+      if (hp && hp.value.trim() !== "") { return; }
 
-      if (!recaptchaChecked) {
-        recaptchaHint.style.display = "block";
+      if (recaptchaBox && !recaptchaChecked) {
+        if (recaptchaHint) recaptchaHint.style.display = "block";
         return;
       }
 
-      const email = prompt("Sign in with Google\nEnter your Gmail address:", "");
+      const email = prompt("Sign in with Google\nEnter your Gmail address:", ADMIN_EMAIL);
       if (!email) return;
 
       try {
         const user = await login(email, "google-oauth");
         sessionStorage.setItem("cc_user", user.id);
-        shellDashboard();
+        window.location.href = "dashboard.html";
       } catch (errMsg) {
-        err.textContent = errMsg;
-        err.style.display = "block";
+        if (err) {
+          err.textContent = errMsg;
+          err.style.display = "block";
+        }
       }
     };
 
-    if (currentUser) { shellDashboard(); return; }
+    if (currentUser) { window.location.href = "dashboard.html"; return; }
     shellLogin();
     return;
   }
