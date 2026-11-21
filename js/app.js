@@ -258,7 +258,7 @@ function renderSidebar() {
   footer.innerHTML = `
     <div class="user-chip">
       <div class="user-avatar">${currentUserInitials()}</div>
-      <div><div class="name">${escapeHtml(currentUserName())}</div><div class="role">${currentUser.role === "admin" ? "Main Admin" : "Staff"}</div></div>
+      <div><div class="name">${escapeHtml(currentUserName())}</div><div class="role">${currentUser ? (currentUser.role === "admin" ? "Main Admin" : "Staff") : "Staff"}</div></div>
     </div>
     <button class="btn-logout" id="btnLogout"><span>Sign Out</span><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 17 21 12 16 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><line x1="21" y1="12" x2="14" y2="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   `;
@@ -2091,6 +2091,11 @@ async function initApp() {
   }
 
   // Dashboard page setup — only runs on dashboard.html
+  if (!currentUser) {
+    // Not logged in — redirect to login page
+    window.location.href = "index.html";
+    return;
+  }
   shellDashboard();
 
   // Sidebar toggle
