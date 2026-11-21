@@ -29,16 +29,6 @@
     <circle cx="850" cy="500" r="420" fill="url(#tealWaveGlow)" />
   </svg>
 
-  <!-- Top ACTI Brand Bar -->
-  <header class="acti-brand-header">
-    <div class="acti-seal-badge">
-      <img src="assets/acti-logo.png" alt="ACTI Seal" class="acti-seal-img" width="82" height="82">
-    </div>
-    <div class="acti-brand-text">
-      <h1 class="acti-title">Accounting<br>Certification &amp;<br>Training Institute</h1>
-    </div>
-  </header>
-
   <!-- The 3D Neumorphic Verification Card -->
   <main class="auth-3d-card" id="authCard">
     <!-- LEFT PANEL: Inset Frame with 3D Lock (Image 2) or 3D Check Dial (Image 1) -->
@@ -46,14 +36,14 @@
       <div class="auth-3d-well" id="auth3dWell">
         <!-- Concentric ripples inside well -->
         <svg class="well-ripples" viewBox="0 0 320 320" aria-hidden="true">
-          <circle cx="160" cy="150" r="75" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" />
-          <circle cx="160" cy="150" r="105" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1.5" />
-          <circle cx="160" cy="150" r="135" fill="none" stroke="rgba(255,255,255,0.025)" stroke-width="1.5" />
+          <circle cx="160" cy="145" r="75" fill="none" stroke="rgba(255,255,255,0.065)" stroke-width="1.5" />
+          <circle cx="160" cy="145" r="105" fill="none" stroke="rgba(255,255,255,0.045)" stroke-width="1.5" />
+          <circle cx="160" cy="145" r="135" fill="none" stroke="rgba(255,255,255,0.028)" stroke-width="1.5" />
         </svg>
 
-        <!-- STATE A: 3D Neumorphic Padlock (Default - Image 2) -->
+        <!-- STATE A: 3D Neumorphic Padlock (Default - Image 2 & 3) -->
         <div class="visual-lock-wrap" id="visualLock">
-          <svg class="lock-3d-svg" viewBox="0 0 160 180" width="135" height="155">
+          <svg class="lock-3d-svg" viewBox="0 0 160 180" width="162" height="184">
             <defs>
               <linearGradient id="shackleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stop-color="#e2f6f8" />
@@ -142,12 +132,15 @@
       </div>
     </div>
 
-    <!-- RIGHT PANEL: Google Authentication (Clean, Google Sign-In Only, No Numerics) -->
+    <!-- RIGHT PANEL: Google Authentication (ACTI Brand Seal & Title Replaces Auth Text Header - Image 4) -->
     <div class="auth-3d-right">
-      <div class="auth-header-block">
-        <span class="auth-category-tag">AUTHENTICATION</span>
-        <h2 class="auth-main-title">Verify Your Identity</h2>
-        <p class="auth-sub-desc">Sign in with your authorized Google account to unlock protected access to the control center.</p>
+      <div class="auth-brand-badge-card">
+        <div class="auth-brand-seal-wrap">
+          <img src="assets/acti-logo.png" alt="ACTI Seal" class="auth-card-seal-img" width="60" height="60">
+        </div>
+        <div class="auth-brand-text-wrap">
+          <h1 class="auth-card-brand-title">Accounting<br>Certification &amp;<br>Training Institute</h1>
+        </div>
       </div>
 
       <form id="googleAuthForm" class="auth-google-form" novalidate>
@@ -217,29 +210,6 @@
         </div>
       </form>
     </div>
-
-    <!-- Public Student / Trainee Portal Footer (Request Invoice & Refund with POP) -->
-    <footer class="public-student-footer">
-      <div class="student-footer-container">
-        <div class="student-footer-meta">
-          <span class="student-portal-tag">STUDENT &amp; TRAINEE PORTAL</span>
-          <p class="student-footer-text">Need an Official Receipt or Tuition Refund? Submit your request directly with Proof of Payment (POP).</p>
-        </div>
-        <div class="student-footer-actions">
-          <button type="button" class="btn-student-footer" id="btnStudentInvoice" onclick="openPublicStudentModal('invoice')">
-            <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2"/></svg>
-            <span>Request Invoice / OR Form</span>
-          </button>
-          <button type="button" class="btn-student-footer refund-btn" id="btnStudentRefund" onclick="openPublicStudentModal('refund')">
-            <svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8v8m-4-4h8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-            <span>Request Tuition Refund</span>
-          </button>
-        </div>
-      </div>
-      <div class="student-footer-copyright">
-        &copy; 2026 Accounting Certification and Training Institute, Inc. (ACTI) &bull; Cauayan City, Isabela
-      </div>
-    </footer>
   </main>
 </div>
 

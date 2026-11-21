@@ -1514,6 +1514,159 @@ function appSwitchLeaveTab(tab) {
   renderLeave($q("#appContent"));
 }
 
+// In-memory signature storage for Leave Application Form
+const paperFormSignatures = {
+  emp: null,
+  supervisor: null,
+  manager: null,
+  conforme: null,
+  noted: null
+};
+
+function appAutoComputeLeaveDays() {
+  const fromEl = $q("#pDateFrom");
+  const toEl = $q("#pDateTo");
+  const daysEl = $q("#pDays");
+  const datesEl = $q("#pDates");
+  if (!fromEl || !toEl || !daysEl) return;
+  if (!fromEl.value) return;
+  if (!toEl.value) toEl.value = fromEl.value;
+
+  const d1 = new Date(fromEl.value);
+  const d2 = new Date(toEl.value);
+  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return;
+
+  if (d2 < d1) {
+    toEl.value = fromEl.value;
+  }
+
+  const diffTime = Math.abs(new Date(toEl.value) - d1);
+  const diffDays = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1);
+
+  daysEl.value = diffDays + (diffDays === 1 ? " day" : " days");
+
+  const opts = { month: "long", day: "numeric", year: "numeric" };
+  const str1 = d1.toLocaleDateString("en-US", opts);
+  const str2 = new Date(toEl.value).toLocaleDateString("en-US", opts);
+  if (datesEl) {
+    datesEl.value = (str1 === str2) ? str1 : `${str1} — ${str2}`;
+  }
+}
+
+function appHandleSigUpload(event, targetKey) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      // Process signature through canvas: automatic clean white/transparent background
+      const canvas = document.createElement("canvas");
+      const maxW = 320;
+      const scale = Math.min(1, maxW / img.width);
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+
+      // Scan all pixels: convert light/grayish paper background to transparent/white, darken ink
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+        if (lum > 165) {
+          // Background paper or light shadow -> transparent
+          data[i + 3] = 0;
+        } else {
+          // Signature ink -> enhance contrast
+          const alpha = Math.min(255, Math.round((1 - lum / 165) * 255 * 1.35));
+          data[i] = 10;     // R
+          data[i + 1] = 40; // G
+          data[i + 2] = 65; // B
+          data[i + 3] = alpha;
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      const cleanDataUrl = canvas.toDataURL("image/png");
+      paperFormSignatures[targetKey] = cleanDataUrl;
+      appRenderSignatureInBox(targetKey, cleanDataUrl);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function appStampDigitalSignature(targetKey, name) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 240;
+  canvas.height = 60;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, 240, 60);
+
+  ctx.font = "italic 23px 'Brush Script MT', 'Dancing Script', cursive, 'Segoe Script', sans-serif";
+  ctx.fillStyle = "#0c424e";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  ctx.fillText(name || "Authorized Signature", 120, 28);
+
+  // Artistic underline flourish
+  ctx.beginPath();
+  ctx.moveTo(30, 42);
+  ctx.bezierCurveTo(85, 48, 155, 36, 210, 41);
+  ctx.strokeStyle = "rgba(12, 66, 78, 0.75)";
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+
+  const stampDataUrl = canvas.toDataURL("image/png");
+  paperFormSignatures[targetKey] = stampDataUrl;
+  appRenderSignatureInBox(targetKey, stampDataUrl);
+}
+
+function appClearSignature(targetKey) {
+  paperFormSignatures[targetKey] = null;
+  const box = $q(`#sigBox_${targetKey}`);
+  if (box) {
+    box.classList.remove("has-sig");
+    box.innerHTML = `<span class="sig-placeholder-hint">Click or Upload Signature</span>`;
+  }
+}
+
+function appRenderSignatureInBox(targetKey, dataUrl) {
+  const box = $q(`#sigBox_${targetKey}`);
+  if (!box) return;
+  box.classList.add("has-sig");
+  box.innerHTML = `<img src="${dataUrl}" alt="Digital Signature" class="sig-preview-img">`;
+}
+
+function appOnRecCheck(status) {
+  if (status === "approved") {
+    if ($q("#pRecApproved")) $q("#pRecApproved").checked = true;
+    if ($q("#pRecDisapproved")) $q("#pRecDisapproved").checked = false;
+  } else {
+    if ($q("#pRecApproved")) $q("#pRecApproved").checked = false;
+    if ($q("#pRecDisapproved")) $q("#pRecDisapproved").checked = true;
+  }
+}
+
+function appOnAppCheck(status) {
+  if (status === "approved") {
+    if ($q("#pAppApproved")) $q("#pAppApproved").checked = true;
+    if ($q("#pAppDisapproved")) $q("#pAppDisapproved").checked = false;
+  } else {
+    if ($q("#pAppApproved")) $q("#pAppApproved").checked = false;
+    if ($q("#pAppDisapproved")) $q("#pAppDisapproved").checked = true;
+  }
+}
+
 function renderLeaveTabBody() {
   const container = $q("#leaveTabContent");
   if (!container) return;
@@ -1543,7 +1696,7 @@ function renderLeaveTabBody() {
 
         <form id="actiPaperLeaveForm" onsubmit="event.preventDefault();appSubmitPaperLeave();">
           <div class="acti-paper-sheet">
-            <!-- Header -->
+            <!-- Header (Clean Circular Logo, No Black Box) -->
             <div class="paper-header">
               <img src="assets/acti-logo.png" alt="ACTI Seal" class="paper-logo">
               <div class="paper-company-title">ACCOUNTING CERTIFICATION AND TRAINING INSTITUTE, INC.</div>
@@ -1602,42 +1755,81 @@ function renderLeaveTabBody() {
                 </div>
               </div>
 
-              <!-- Right Column: Dates, Days, Signature -->
+              <!-- Right Column: Dates (Auto-Compute), Days, Signature Upload -->
               <div class="paper-col-right">
                 <div>
                   <div style="font-weight:700;margin-bottom:4px;font-size:11px;">INCLUSIVE DATES</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px;">
+                    <div>
+                      <span style="font-size:9.5px;color:#475569;font-weight:600;">Date From:</span>
+                      <input type="date" id="pDateFrom" class="paper-line-input" value="${new Date().toISOString().split('T')[0]}" onchange="appAutoComputeLeaveDays()">
+                    </div>
+                    <div>
+                      <span style="font-size:9.5px;color:#475569;font-weight:600;">Date To:</span>
+                      <input type="date" id="pDateTo" class="paper-line-input" value="${new Date().toISOString().split('T')[0]}" onchange="appAutoComputeLeaveDays()">
+                    </div>
+                  </div>
                   <input type="text" id="pDates" class="paper-line-input" value="November 11, 2026" placeholder="e.g. November 11, 2026">
-                  <div style="margin-top:12px;font-weight:700;font-size:11px;">NUMBER OF DAYS:</div>
-                  <input type="text" id="pDays" class="paper-line-input" value="1 day" placeholder="e.g. 1 day">
+                  <div style="margin-top:10px;font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:space-between;">
+                    <span>NUMBER OF DAYS:</span>
+                    <span style="font-size:9px;color:var(--teal-dark);font-weight:600;">Auto-computed</span>
+                  </div>
+                  <input type="text" id="pDays" class="paper-line-input" value="1 day" readonly style="background:#f8fafc;font-weight:700;color:#086375;">
                 </div>
 
-                <div style="text-align:center;margin-top:24px;">
+                <!-- Employee Signature Upload & Line -->
+                <div class="sig-capture-wrap" style="margin-top:16px;">
+                  <div class="sig-preview-box" id="sigBox_emp">
+                    <span class="sig-placeholder-hint">Click or Upload Signature</span>
+                  </div>
+                  <input type="file" id="sigFile_emp" accept="image/*" style="display:none;" onchange="appHandleSigUpload(event, 'emp')">
+                  <div class="sig-tools-row no-print">
+                    <button type="button" class="btn-sig-pill" onclick="$q('#sigFile_emp').click()">✍️ Upload PNG / JPG</button>
+                    <button type="button" class="btn-sig-pill pill-stamp" onclick="appStampDigitalSignature('emp', $q('#pEmpName')?$q('#pEmpName').value:'Employee')">Stamp</button>
+                    <button type="button" class="btn-sig-pill pill-clear" onclick="appClearSignature('emp')">Clear</button>
+                  </div>
                   <input type="text" id="pSigEmpName" class="paper-line-input" value="${escapeHtml(defaultEmpName)}" style="text-align:center;font-weight:700;">
                   <div style="font-size:10px;font-style:italic;color:#475569;margin-top:2px;">Employee's Name and Signature</div>
                 </div>
               </div>
             </div>
 
-            <!-- Signatory Split: Recommended By & Approved By -->
+            <!-- Signatory Split: Recommended By & Approved By with Signature Upload & Check Badges -->
             <div class="paper-sig-box-split">
               <!-- Recommended By -->
               <div class="paper-sig-box">
                 <div class="paper-sig-head">RECOMMENDED BY:</div>
-                <div style="display:flex;gap:14px;margin-bottom:6px;">
-                  <label class="paper-checkbox-item" style="margin:0;">
-                    <input type="checkbox" id="pRecApproved" checked onchange="if(this.checked)$q('#pRecDisapproved').checked=false">
-                    <span>Approved</span>
+                <div style="display:flex;gap:10px;margin-bottom:8px;">
+                  <label class="paper-check-badge-label">
+                    <input type="checkbox" id="pRecApproved" checked onchange="appOnRecCheck('approved')">
+                    <span class="paper-check-badge approved">
+                      <svg viewBox="0 0 24 24" width="13" height="13"><path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      Approved
+                    </span>
                   </label>
-                  <label class="paper-checkbox-item" style="margin:0;">
-                    <input type="checkbox" id="pRecDisapproved" onchange="if(this.checked)$q('#pRecApproved').checked=false">
-                    <span>Disapproved</span>
+                  <label class="paper-check-badge-label">
+                    <input type="checkbox" id="pRecDisapproved" onchange="appOnRecCheck('disapproved')">
+                    <span class="paper-check-badge disapproved">
+                      <svg viewBox="0 0 24 24" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                      Disapproved
+                    </span>
                   </label>
                 </div>
-                <div style="margin-bottom:12px;">
+                <div style="margin-bottom:10px;">
                   <span style="font-style:italic;font-size:10px;">Reason:</span>
                   <input type="text" id="pRecReason" class="paper-line-input" placeholder="Reason if disapproved...">
                 </div>
-                <div style="text-align:center;margin-top:18px;">
+
+                <div class="sig-capture-wrap" style="margin-top:8px;">
+                  <div class="sig-preview-box" id="sigBox_supervisor">
+                    <span class="sig-placeholder-hint">Click or Upload Signature</span>
+                  </div>
+                  <input type="file" id="sigFile_supervisor" accept="image/*" style="display:none;" onchange="appHandleSigUpload(event, 'supervisor')">
+                  <div class="sig-tools-row no-print">
+                    <button type="button" class="btn-sig-pill" onclick="$q('#sigFile_supervisor').click()">✍️ Upload Signature</button>
+                    <button type="button" class="btn-sig-pill pill-stamp" onclick="appStampDigitalSignature('supervisor', 'Angelina A. Aquino')">Stamp</button>
+                    <button type="button" class="btn-sig-pill pill-clear" onclick="appClearSignature('supervisor')">Clear</button>
+                  </div>
                   <input type="text" id="pSupervisorName" class="paper-line-input" value="ANGELINA A. AQUINO" style="text-align:center;font-weight:700;">
                   <div class="paper-sig-title">Supervisor</div>
                 </div>
@@ -1646,21 +1838,37 @@ function renderLeaveTabBody() {
               <!-- Approved By -->
               <div class="paper-sig-box">
                 <div class="paper-sig-head">APPROVED BY:</div>
-                <div style="display:flex;gap:14px;margin-bottom:6px;">
-                  <label class="paper-checkbox-item" style="margin:0;">
-                    <input type="checkbox" id="pAppApproved" checked onchange="if(this.checked)$q('#pAppDisapproved').checked=false">
-                    <span>Approved</span>
+                <div style="display:flex;gap:10px;margin-bottom:8px;">
+                  <label class="paper-check-badge-label">
+                    <input type="checkbox" id="pAppApproved" checked onchange="appOnAppCheck('approved')">
+                    <span class="paper-check-badge approved">
+                      <svg viewBox="0 0 24 24" width="13" height="13"><path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      Approved
+                    </span>
                   </label>
-                  <label class="paper-checkbox-item" style="margin:0;">
-                    <input type="checkbox" id="pAppDisapproved" onchange="if(this.checked)$q('#pAppApproved').checked=false">
-                    <span>Disapproved</span>
+                  <label class="paper-check-badge-label">
+                    <input type="checkbox" id="pAppDisapproved" onchange="appOnAppCheck('disapproved')">
+                    <span class="paper-check-badge disapproved">
+                      <svg viewBox="0 0 24 24" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                      Disapproved
+                    </span>
                   </label>
                 </div>
-                <div style="margin-bottom:12px;">
+                <div style="margin-bottom:10px;">
                   <span style="font-style:italic;font-size:10px;">Reason:</span>
                   <input type="text" id="pAppReason" class="paper-line-input" placeholder="Reason if disapproved...">
                 </div>
-                <div style="text-align:center;margin-top:18px;">
+
+                <div class="sig-capture-wrap" style="margin-top:8px;">
+                  <div class="sig-preview-box" id="sigBox_manager">
+                    <span class="sig-placeholder-hint">Click or Upload Signature</span>
+                  </div>
+                  <input type="file" id="sigFile_manager" accept="image/*" style="display:none;" onchange="appHandleSigUpload(event, 'manager')">
+                  <div class="sig-tools-row no-print">
+                    <button type="button" class="btn-sig-pill" onclick="$q('#sigFile_manager').click()">✍️ Upload Signature</button>
+                    <button type="button" class="btn-sig-pill pill-stamp" onclick="appStampDigitalSignature('manager', 'Patricia Fae C. Ramel, CPA')">Stamp</button>
+                    <button type="button" class="btn-sig-pill pill-clear" onclick="appClearSignature('manager')">Clear</button>
+                  </div>
                   <input type="text" id="pManagerName" class="paper-line-input" value="PATRICIA FAE C. RAMEL, CPA" style="text-align:center;font-weight:700;">
                   <div class="paper-sig-title">Manager</div>
                 </div>
@@ -1679,13 +1887,32 @@ function renderLeaveTabBody() {
               </div>
 
               <div class="paper-bottom-grid">
-                <div style="text-align:center;">
-                  <div style="font-weight:700;font-size:10px;text-align:left;margin-bottom:14px;">CONFORME BY:</div>
+                <div class="sig-capture-wrap">
+                  <div style="font-weight:700;font-size:10px;text-align:left;margin-bottom:6px;width:100%;">CONFORME BY:</div>
+                  <div class="sig-preview-box" id="sigBox_conforme">
+                    <span class="sig-placeholder-hint">Click or Upload Signature</span>
+                  </div>
+                  <input type="file" id="sigFile_conforme" accept="image/*" style="display:none;" onchange="appHandleSigUpload(event, 'conforme')">
+                  <div class="sig-tools-row no-print">
+                    <button type="button" class="btn-sig-pill" onclick="$q('#sigFile_conforme').click()">✍️ Upload</button>
+                    <button type="button" class="btn-sig-pill pill-stamp" onclick="appStampDigitalSignature('conforme', $q('#pEmpName')?$q('#pEmpName').value:'Employee')">Stamp</button>
+                    <button type="button" class="btn-sig-pill pill-clear" onclick="appClearSignature('conforme')">Clear</button>
+                  </div>
                   <input type="text" id="pConformeSig" class="paper-line-input" value="${escapeHtml(defaultEmpName)}" style="text-align:center;font-weight:600;">
                   <div class="paper-sig-title">Employee's Signature</div>
                 </div>
-                <div style="text-align:center;">
-                  <div style="font-weight:700;font-size:10px;text-align:left;margin-bottom:14px;">NOTED BY:</div>
+
+                <div class="sig-capture-wrap">
+                  <div style="font-weight:700;font-size:10px;text-align:left;margin-bottom:6px;width:100%;">NOTED BY:</div>
+                  <div class="sig-preview-box" id="sigBox_noted">
+                    <span class="sig-placeholder-hint">Click or Upload Signature</span>
+                  </div>
+                  <input type="file" id="sigFile_noted" accept="image/*" style="display:none;" onchange="appHandleSigUpload(event, 'noted')">
+                  <div class="sig-tools-row no-print">
+                    <button type="button" class="btn-sig-pill" onclick="$q('#sigFile_noted').click()">✍️ Upload</button>
+                    <button type="button" class="btn-sig-pill pill-stamp" onclick="appStampDigitalSignature('noted', 'Chamie D.')">Stamp</button>
+                    <button type="button" class="btn-sig-pill pill-clear" onclick="appClearSignature('noted')">Clear</button>
+                  </div>
                   <input type="text" id="pNotedSig" class="paper-line-input" value="CHAMIE D." style="text-align:center;font-weight:600;">
                   <div class="paper-sig-title">Authorized Signatory</div>
                 </div>
@@ -1702,7 +1929,7 @@ function renderLeaveTabBody() {
       </div>
     `;
   } else if (leaveActiveTab === "approval") {
-    // Matching Image 2 with clear Approve & Reject Application buttons!
+    // Matching Image 7: Action buttons strictly on 1 single line with uniform equal proportions
     container.innerHTML = `
       <div class="card">
         <div class="card-header">
@@ -1743,19 +1970,25 @@ function renderLeaveTabBody() {
                       </span>
                       ${l.disapprovalReason ? `<div style="font-size:0.7rem;color:var(--error);margin-top:2px;">Reason: ${escapeHtml(l.disapprovalReason)}</div>` : ''}
                     </td>
-                    <td style="display:flex;gap:4px;flex-wrap:wrap;">
-                      <button class="btn-sm teal" style="padding:3px 8px;font-size:0.72rem;" onclick="appLeaveAction('${l.id}','approved')" title="Approve Application">
-                        Approve
-                      </button>
-                      <button class="btn-sm" style="padding:3px 8px;font-size:0.72rem;color:var(--error);border-color:#fca5a5;" onclick="appDisapproveLeaveModal('${l.id}')" title="Reject Application">
-                        Reject Application
-                      </button>
-                      <button class="btn-sm" style="padding:3px 8px;font-size:0.72rem;" onclick="appLoadLeaveToForm('${l.id}')" title="Open in Official Form">
-                        View/Edit
-                      </button>
-                      <button class="btn-sm" style="padding:3px 8px;font-size:0.72rem;" onclick="appPrintOfficialLeaveForm('${l.id}')" title="Print ACTI Form">
-                        Print Form
-                      </button>
+                    <td class="approval-actions-cell">
+                      <div class="approval-actions-row">
+                        <button class="btn-appr-action btn-appr-approve" onclick="appLeaveAction('${l.id}','approved')" title="Approve Application">
+                          <svg viewBox="0 0 24 24" width="12" height="12"><path d="M20 6L9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                          <span>Approve</span>
+                        </button>
+                        <button class="btn-appr-action btn-appr-reject" onclick="appDisapproveLeaveModal('${l.id}')" title="Reject Application">
+                          <svg viewBox="0 0 24 24" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                          <span>Reject</span>
+                        </button>
+                        <button class="btn-appr-action btn-appr-view" onclick="appLoadLeaveToForm('${l.id}')" title="Open in Official Form">
+                          <svg viewBox="0 0 24 24" width="12" height="12"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                          <span>View/Edit</span>
+                        </button>
+                        <button class="btn-appr-action btn-appr-print" onclick="appPrintOfficialLeaveForm('${l.id}')" title="Print ACTI Form">
+                          <svg viewBox="0 0 24 24" width="12" height="12"><polyline points="6 9 6 2 18 2 18 9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="6" y="14" width="12" height="8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                          <span>Print</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 `;
@@ -1788,7 +2021,7 @@ function renderLeaveTabBody() {
                 <th>Annual Entitlement</th>
                 <th>Remaining Balance</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th style="text-align:center;">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1803,14 +2036,15 @@ function renderLeaveTabBody() {
                     <td><strong>5 days</strong> / year</td>
                     <td><strong style="color:var(--teal-dark);font-size:0.95rem;">${emp.leaveBalance != null ? emp.leaveBalance : 5}</strong> days</td>
                     <td><span class="badge ${emp.status === 'Active' ? 'badge-bg' : 'badge-error'}">${escapeHtml(emp.status)}</span></td>
-                    <td>
-                      ${isSuperAdmin() ? `
-                        <button class="btn-sm teal" style="padding:3px 8px;font-size:0.72rem;" onclick="appAdjustLeaveBalanceSuperAdmin('${emp.id}')">Adjust Balance</button>
-                      ` : (isSupervisor() ? `
-                        <button class="btn-sm" style="padding:3px 8px;font-size:0.72rem;" onclick="appProposeLeaveBalanceSupervisor('${emp.id}')">Propose Adjustment</button>
-                      ` : `
-                        <span style="font-size:0.72rem;color:#64748b;">Locked</span>
-                      `)}
+                    <td style="text-align:center;">
+                      <div style="display:flex;align-items:center;gap:6px;justify-content:center;">
+                        <button class="btn-icon-table btn-icon-edit" onclick="appAdjustLeaveBalanceSuperAdmin('${emp.id}')" title="Edit Leave Balance / Staff">
+                          <svg viewBox="0 0 24 24" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <button class="btn-icon-table btn-icon-delete" onclick="appDeleteStaff('${emp.id}')" title="Delete Staff">
+                          <svg viewBox="0 0 24 24" width="14" height="14"><polyline points="3 6 5 6 21 6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 `;
@@ -1992,6 +2226,7 @@ function appSubmitPaperLeave() {
     disapprovalReason: appReason || recReason || cancelledReason || "",
     recommendedBy: supervisorName,
     approvedBy: managerName,
+    signatures: { ...paperFormSignatures },
     createdAt: filingDate.includes("-") ? filingDate : nowIso()
   };
 
@@ -2025,6 +2260,15 @@ function appLoadLeaveToForm(id) {
     if ($q("#pConformeSig")) $q("#pConformeSig").value = l.employeeName || "";
     if ($q("#pSupervisorName")) $q("#pSupervisorName").value = l.recommendedBy || "ANGELINA A. AQUINO";
     if ($q("#pManagerName")) $q("#pManagerName").value = l.approvedBy || "PATRICIA FAE C. RAMEL, CPA";
+
+    if (l.signatures) {
+      Object.assign(paperFormSignatures, l.signatures);
+      if (l.signatures.emp) appRenderSignatureInBox("emp", l.signatures.emp);
+      if (l.signatures.supervisor) appRenderSignatureInBox("supervisor", l.signatures.supervisor);
+      if (l.signatures.manager) appRenderSignatureInBox("manager", l.signatures.manager);
+      if (l.signatures.conforme) appRenderSignatureInBox("conforme", l.signatures.conforme);
+      if (l.signatures.noted) appRenderSignatureInBox("noted", l.signatures.noted);
+    }
 
     const isVacation = (l.type || "").toLowerCase().includes("vacation");
     const isSick = (l.type || "").toLowerCase().includes("sick");
@@ -2250,6 +2494,12 @@ function appPrintOfficialLeaveForm(id) {
   const isAcademic = (l.type || "").toLowerCase().includes("academic");
   const isOther = !isVacation && !isSick;
 
+  const sigEmp = (l.signatures && l.signatures.emp) || paperFormSignatures.emp;
+  const sigSupervisor = (l.signatures && l.signatures.supervisor) || paperFormSignatures.supervisor;
+  const sigManager = (l.signatures && l.signatures.manager) || paperFormSignatures.manager;
+  const sigConforme = (l.signatures && l.signatures.conforme) || paperFormSignatures.conforme;
+  const sigNoted = (l.signatures && l.signatures.noted) || paperFormSignatures.noted;
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2259,7 +2509,7 @@ function appPrintOfficialLeaveForm(id) {
   body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #0f172a; padding: 20px; max-width: 800px; margin: 0 auto; background: #fff; }
   .sheet { border: 2px solid #1e293b; background: #fff; }
   .header { text-align: center; padding: 12px 14px 8px; }
-  .logo { width: 56px; height: 56px; margin: 0 auto 4px; display: block; }
+  .logo { width: 56px; height: 56px; margin: 0 auto 4px; display: block; border-radius: 50%; object-fit: contain; }
   .company { color: #086375; font-size: 13px; font-weight: bold; letter-spacing: 0.4px; text-transform: uppercase; }
   .sub { color: #475569; font-size: 10px; font-style: italic; margin-top: 2px; }
   .title-bar { border-top: 2px solid #1e293b; border-bottom: 2px solid #1e293b; text-align: center; font-weight: bold; font-size: 12px; padding: 5px; letter-spacing: 1px; }
@@ -2274,7 +2524,7 @@ function appPrintOfficialLeaveForm(id) {
   .sig-split { display: grid; grid-template-columns: 1fr 1fr; border-top: 2px solid #1e293b; }
   .sig-box { padding: 10px 14px; }
   .sig-box:first-child { border-right: 2px solid #1e293b; }
-  .sig-name { font-weight: bold; font-size: 11px; text-align: center; border-bottom: 1.5px solid #1e293b; padding-bottom: 2px; margin-top: 25px; }
+  .sig-name { font-weight: bold; font-size: 11px; text-align: center; border-bottom: 1.5px solid #1e293b; padding-bottom: 2px; margin-top: 8px; }
   .sig-role { font-size: 10px; font-style: italic; color: #475569; text-align: center; margin-top: 2px; }
   .bottom-box { border-top: 2px solid #1e293b; padding: 10px 14px; }
   .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; margin-top: 20px; gap: 24px; }
@@ -2324,7 +2574,8 @@ function appPrintOfficialLeaveForm(id) {
           <div class="underline-text">${l.days} day(s)</div>
         </div>
 
-        <div style="text-align:center;margin-top:30px;">
+        <div style="text-align:center;margin-top:20px;">
+          ${sigEmp ? `<div style="height:38px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:-6px;"><img src="${sigEmp}" style="max-height:38px;max-width:170px;object-fit:contain;"></div>` : ''}
           <div class="sig-name">${escapeHtml(l.employeeName)}</div>
           <div class="sig-role">Employee's Name and Signature</div>
         </div>
@@ -2342,6 +2593,7 @@ function appPrintOfficialLeaveForm(id) {
           <span style="font-style:italic;">Reason:</span>
           <span class="underline-text">${l.status === 'disapproved' ? escapeHtml(l.disapprovalReason || '') : ''}</span>
         </div>
+        ${sigSupervisor ? `<div style="height:38px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:-6px;"><img src="${sigSupervisor}" style="max-height:38px;max-width:170px;object-fit:contain;"></div>` : ''}
         <div class="sig-name">${escapeHtml(l.recommendedBy || 'ANGELINA A. AQUINO')}</div>
         <div class="sig-role">Supervisor</div>
       </div>
@@ -2356,6 +2608,7 @@ function appPrintOfficialLeaveForm(id) {
           <span style="font-style:italic;">Reason:</span>
           <span class="underline-text">${l.status === 'disapproved' ? escapeHtml(l.disapprovalReason || '') : ''}</span>
         </div>
+        ${sigManager ? `<div style="height:38px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:-6px;"><img src="${sigManager}" style="max-height:38px;max-width:170px;object-fit:contain;"></div>` : ''}
         <div class="sig-name">${escapeHtml(l.approvedBy || 'PATRICIA FAE C. RAMEL, CPA')}</div>
         <div class="sig-role">Manager</div>
       </div>
@@ -2370,12 +2623,14 @@ function appPrintOfficialLeaveForm(id) {
 
       <div class="bottom-grid">
         <div>
-          <div style="font-weight:bold;margin-bottom:12px;">CONFORME BY:</div>
+          <div style="font-weight:bold;margin-bottom:8px;">CONFORME BY:</div>
+          ${sigConforme ? `<div style="height:38px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:-6px;"><img src="${sigConforme}" style="max-height:38px;max-width:170px;object-fit:contain;"></div>` : ''}
           <div class="sig-name">${escapeHtml(l.employeeName)}</div>
           <div class="sig-role">Employee's Signature</div>
         </div>
         <div>
-          <div style="font-weight:bold;margin-bottom:12px;">NOTED BY:</div>
+          <div style="font-weight:bold;margin-bottom:8px;">NOTED BY:</div>
+          ${sigNoted ? `<div style="height:38px;display:flex;align-items:flex-end;justify-content:center;margin-bottom:-6px;"><img src="${sigNoted}" style="max-height:38px;max-width:170px;object-fit:contain;"></div>` : ''}
           <div class="sig-name">CHAMIE D.</div>
           <div class="sig-role">Authorized Signatory</div>
         </div>
@@ -4459,6 +4714,12 @@ Object.assign(window, {
   appRejectBalanceAdjustment,
   appPrintOfficialLeaveForm,
   appPrintLeave,
+  appAutoComputeLeaveDays,
+  appHandleSigUpload,
+  appStampDigitalSignature,
+  appClearSignature,
+  appOnRecCheck,
+  appOnAppCheck,
   appOpenOTModal,
   appSubmitOT,
   appOTAction,
