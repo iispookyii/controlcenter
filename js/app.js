@@ -991,34 +991,36 @@ function renderQR(text, containerId) {
    ========================================================================== */
 function renderLeave(el) {
   const myEmp = state.employees.find(e => e.email === currentUser.email) || null;
-  const isEnrolled = !!myEmp;
   const isPerm = myEmp ? myEmp.type === "permanent" : false;
-  const pendingMy = myEmp ? state.leaves.filter(l => l.employeeId === myEmp.id && l.status === "pending").length : 0;
+  const pendingMy = state.leaves.filter(l => l.employeeEmail === currentUser.email && l.status === "pending").length;
 
   const adminCard = isAdmin() ? `
   <div class="card" style="margin-top:20px;">
     <div class="card-header"><h3>All Leave Requests (Admin)</h3><div class="card-actions"><button class="btn-sm" onclick="appNavigate('leave')">Refresh</button></div></div>
     <div class="card-body">
       <table>
-        <thead><tr><th>Employee</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
+        <thead><tr><th>Employee</th><th>Email</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
         <tbody id="leaveAdminList"></tbody>
       </table>
     </div>
   </div>
   ` : "";
 
+  const myName = currentUser ? currentUser.name : "";
+  const myEmail = currentUser ? currentUser.email : "";
+
   el.innerHTML = `
     <div class="module-header">
       <div>
         <h2>Leave Filing</h2>
-        <div class="sub">${isEnrolled ? (isPerm ? "Leave balance tracked for permanent employees." : "Contractual staff file online leave only.") : "You are not enrolled as staff. Ask the admin to enroll you before filing leave."}</div>
+        <div class="sub">Anyone can file leave online. Permanent employees get leave balance tracking.</div>
       </div>
-      ${isEnrolled ? `<button class="btn-sm teal" onclick="appOpenLeaveModal()">+ File Leave</button>` : `<button class="btn-sm" disabled style="opacity:0.5;">Enroll as staff first</button>`}
+      <button class="btn-sm teal" onclick="appOpenLeaveModal()">+ File Leave</button>
     </div>
 
     <div class="kpi-row">
-      <div class="kpi"><div class="kpi-label">Employee Type</div><div class="kpi-value">${isPerm ? "Permanent" : "Contractual"}</div><div class="kpi-delta neu">${escapeHtml(myEmp.name)}</div></div>
-      <div class="kpi"><div class="kpi-label">Leave Balance</div><div class="kpi-value">${isPerm ? myEmp.leaveBalance : "—"}</div><div class="kpi-delta neu">${isPerm ? "days remaining" : "online leave only"}</div></div>
+      <div class="kpi"><div class="kpi-label">Employee Type</div><div class="kpi-value">${isPerm ? "Permanent" : "Staff / Other"}</div><div class="kpi-delta neu">${escapeHtml(myName)}</div></div>
+      <div class="kpi"><div class="kpi-label">Leave Balance</div><div class="kpi-value">${isPerm ? (myEmp.leaveBalance || 0) : "—"}</div><div class="kpi-delta neu">${isPerm ? "days remaining" : "online leave only"}</div></div>
       <div class="kpi"><div class="kpi-label">Pending Requests</div><div class="kpi-value">${pendingMy}</div><div class="kpi-delta neu">yours</div></div>
       <div class="kpi"><div class="kpi-label">Total on File</div><div class="kpi-value">${state.leaves.length}</div><div class="kpi-delta neu">leave records</div></div>
     </div>
@@ -1036,7 +1038,7 @@ function renderLeave(el) {
   `;
 
   const t = $q("#leaveList");
-  const mine = state.leaves.filter(l => l.employeeId === myEmp.id);
+  const mine = state.leaves.filter(l => l.employeeEmail === currentUser.email);
   t.innerHTML = mine.map(l => `
     <tr>
       <td>${escapeHtml(l.type)}</td>
@@ -1051,10 +1053,10 @@ function renderLeave(el) {
 
   const ta = $q("#leaveAdminList");
   if (ta) {
-    ta.innerHTML = state.leaves.map(l => {
-      const emp = state.employees.find(e => e.id === l.employeeId);
-      return `<tr>
-        <td>${escapeHtml(emp ? emp.name : "Unknown")}</td>
+    ta.innerHTML = state.leaves.map(l => `
+      <tr>
+        <td>${escapeHtml(l.employeeName)}</td>
+        <td>${escapeHtml(l.employeeEmail)}</td>
         <td>${escapeHtml(l.type)}</td>
         <td>${fmtDate(l.from)}</td>
         <td>${fmtDate(l.to)}</td>
@@ -1074,64 +1076,87 @@ function renderLeave(el) {
 
 function appOpenLeaveModal() {
   const myEmp = state.employees.find(e => e.email === currentUser.email);
-  if (!myEmp) { alert("You are not enrolled as staff. Ask the admin to enroll you first."); return; }
-  const isPerm = myEmp.type === "permanent";
+  const isPerm = myEmp ? myEmp.type === "permanent" : false;
+  const empName = currentUser ? currentUser.name : "";
+  const empEmail = currentUser ? currentUser.email : "";
+  const empBalance = myEmp ? (myEmp.leaveBalance || 0) : 0;
   const mod = document.createElement("div");
   mod.className = "modal-overlay";
   mod.innerHTML = `
-    <div class="modal" style="max-width:520px;">
-      <div class="modal-header"><h3>File Leave</h3><button class="btn-close" onclick="this.closest('.modal-overlay').remove()">&times;</button></div>
+    <div class="modal" style="max-width:560px;">
+      <div class="modal-header"><h3>File Leave Request</h3><button class="btn-close" onclick="this.closest('.modal-overlay').remove()">&times;</button></div>
       <div class="modal-body">
         <div class="form-grid">
+          <div class="field">
+            <label>Employee Name</label>
+            <input type="text" id="leaveEmpName" value="${escapeHtml(empName)}" readonly style="background:var(--surface-2);">
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="leaveEmpEmail" value="${escapeHtml(empEmail)}" readonly style="background:var(--surface-2);">
+          </div>
           <div class="field">
             <label>Leave Type</label>
             <select id="leaveType"><option>Vacation</option><option>Sick</option><option>Personal</option><option>Emergency</option></select>
           </div>
           <div class="field">
-            <label>From</label>
+            <label>Date From</label>
             <input type="date" id="leaveFrom">
           </div>
           <div class="field">
-            <label>To</label>
+            <label>Date To</label>
             <input type="date" id="leaveTo">
+          </div>
+          <div class="field">
+            <label>Number of Days</label>
+            <input type="number" id="leaveDays" min="1" value="1">
           </div>
           <div class="field" style="grid-column:1/-1;">
             <label>Reason</label>
             <textarea id="leaveReason" placeholder="Why are you filing leave?"></textarea>
           </div>
-          ${isPerm ? `<div class="field"><label>Your Balance</label><input type="number" id="leaveBal" value="${myEmp.leaveBalance}" readonly style="background:var(--surface-2);"></div>` : `<div class="field" style="grid-column:1/-1;"><div class="hint">Contractual employees file online leave only — no balance deducted.</div></div>`}
+          ${isPerm ? `<div class="field"><label>Your Leave Balance</label><input type="number" id="leaveBal" value="${empBalance}" readonly style="background:var(--surface-2);"></div>` : `<div class="field" style="grid-column:1/-1;"><div class="hint">Online leave filing — balance not deducted for non-permanent staff.</div></div>`}
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn-sm" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-        <button class="btn-sm teal" onclick="appSubmitLeave('${myEmp.id}','${isPerm}')">Submit</button>
+        <button class="btn-sm teal" onclick="appSubmitLeave('${isPerm}')">Submit Leave</button>
       </div>
     </div>
   `;
   $q("#modals").appendChild(mod);
 }
 
-function appSubmitLeave(empId, isPerm) {
+function appSubmitLeave(isPerm) {
+  const empName = $q("#leaveEmpName").value.trim();
+  const empEmail = $q("#leaveEmpEmail").value.trim();
   const type = $q("#leaveType").value;
   const from = $q("#leaveFrom").value;
   const to = $q("#leaveTo").value;
+  const days = Number($q("#leaveDays").value || 1);
   const reason = $q("#leaveReason").value.trim();
-  if (!from || !to || !reason) { alert("Fill all fields"); return; }
+  if (!empName || !empEmail || !from || !to || !reason) { alert("Fill all required fields"); return; }
+  if (!empEmail.endsWith("@gmail.com")) { alert("Email must be Gmail"); return; }
   const d1 = new Date(from), d2 = new Date(to);
-  const days = Math.ceil((d2 - d1) / (1000*60*60*24)) + 1;
-  if (isPerm && days > (state.employees.find(e=>e.id===empId).leaveBalance || 0)) {
-    alert("Insufficient leave balance."); return;
+  const calcDays = Math.ceil((d2 - d1) / (1000*60*60*24)) + 1;
+  if (isNaN(days) || days < 1) { alert("Enter valid number of days"); return; }
+  if (isPerm) {
+    const myEmp = state.employees.find(e => e.email === currentUser.email);
+    if (myEmp && days > (myEmp.leaveBalance || 0)) { alert("Insufficient leave balance."); return; }
   }
   const l = {
-    id: "l" + Date.now(), employeeId: empId, type, from, to, days, reason,
+    id: "l" + Date.now(),
+    employeeName: empName,
+    employeeEmail: empEmail,
+    type, from, to, days: calcDays, reason,
     status: "pending", createdAt: nowIso(), approvedBy: ""
   };
   state.leaves.unshift(l);
-  audit("leave_filed", `${type} ${from} to ${to}`, `${days} day(s) by ${escapeHtml(state.employees.find(e=>e.id===empId).name)}`);
+  audit("leave_filed", `${type} ${from} to ${to}`, `${calcDays} day(s) by ${escapeHtml(empName)}`);
   persist();
   $q(".modal-overlay").remove();
   renderLeave($q("#appContent"));
-  notif(currentUser.id, `Leave filed: ${type} (${days} day(s))`, "leave");
+  notif(currentUser.id, `Leave filed: ${type} (${calcDays} day(s))`, "leave");
 }
 
 function appLeaveAction(id, status) {
@@ -1140,13 +1165,13 @@ function appLeaveAction(id, status) {
   l.status = status;
   l.approvedBy = currentUser.email;
   if (status === "approved") {
-    const emp = state.employees.find(e => e.id === l.employeeId);
+    const emp = state.employees.find(e => e.email === l.employeeEmail);
     if (emp && emp.type === "permanent") emp.leaveBalance = Math.max(0, (emp.leaveBalance || 0) - l.days);
   }
-  audit("leave_" + status, l.id, `${escapeHtml(l.type)} for ${state.employees.find(e=>e.id===l.employeeId).name}`);
+  audit("leave_" + status, l.id, `${escapeHtml(l.type)} for ${escapeHtml(l.employeeName)}`);
   persist();
   renderLeave($q("#appContent"));
-  notif(l.employeeId, `Your ${escapeHtml(l.type)} leave was ${status}.`, "leave");
+  notif(currentUser.id, `Leave for ${escapeHtml(l.employeeName)} was ${status}.`, "leave");
 }
 
 /* ==========================================================================
