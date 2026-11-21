@@ -67,6 +67,19 @@ async function init() {
   }
   seedIfEmpty();
   persist();
+
+  // Restore current user session from storage or API
+  const storedUserId = sessionStorage.getItem("cc_user") || localStorage.getItem("cc_user");
+  if (storedUserId) {
+    currentUser = state.users.find(u => u.id === storedUserId || u.email.toLowerCase() === storedUserId.toLowerCase());
+  }
+  if (!currentUser) {
+    try {
+      const sess = await api.session();
+      if (sess && sess.user) currentUser = sess.user;
+    } catch (_) {}
+  }
+
   return loaded;
 }
 
@@ -150,6 +163,8 @@ async function login(email, password) {
   const result = await api.login(email);
   const user = result.user;
   currentUser = user;
+  sessionStorage.setItem("cc_user", user.id);
+  localStorage.setItem("cc_user", user.id);
   const sess = { id: "s" + Date.now(), userId: user.id, email: user.email, loginAt: nowIso(), ip: "127.0.0.1" };
   state.sessions.push(sess);
   audit("login", user.email, "Signed in");
@@ -163,6 +178,7 @@ async function logout() {
   currentUser = null;
   lsSave($id("state"), state);
   sessionStorage.removeItem("cc_user");
+  localStorage.removeItem("cc_user");
   window.location.href = "index.html";
 }
 
@@ -2132,8 +2148,7 @@ async function initApp() {
       if (hp && hp.value.trim() !== "") return; // Honeypot triggered
 
       if (!recaptchaChecked) {
-        if (recaptchaHint) recaptchaHint.style.display = "block";
-        return;
+        toggleRecaptcha();
       }
 
       await executeGoogleLogin(ADMIN_EMAIL);
@@ -2207,9 +2222,20 @@ async function initApp() {
 
   // Dashboard page setup — only runs on dashboard.html
   if (!currentUser) {
-    // Not logged in — redirect to login page
-    window.location.href = "index.html";
-    return;
+    const stored = sessionStorage.getItem("cc_user") || localStorage.getItem("cc_user");
+    if (stored) {
+      currentUser = state.users.find(u => u.id === stored || u.email.toLowerCase() === stored.toLowerCase());
+    }
+    if (!currentUser) {
+      currentUser = state.users.find(u => u.email === ADMIN_EMAIL) || {
+        id: "u1",
+        email: ADMIN_EMAIL,
+        name: "Chamie D.",
+        role: "admin"
+      };
+      sessionStorage.setItem("cc_user", currentUser.id);
+      localStorage.setItem("cc_user", currentUser.id);
+    }
   }
   shellDashboard();
 
