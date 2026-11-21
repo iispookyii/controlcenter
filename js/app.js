@@ -36,6 +36,8 @@ let state = {
 };
 
 let currentUser = null;
+let currentModule = 'dashboard';
+let previousModule = null;
 
 async function init() {
   // Try loading full state from API first
@@ -415,6 +417,7 @@ function renderVoucher(el) {
       </div>
       <div class="card-actions">
         <span class="badge ${voucherDraft.status === 'posted' ? 'badge-success' : 'badge-warning'}">Draft auto-saving</span>
+        <button class="btn-sm" onclick="appNavigateBack()">Back</button>
       </div>
     </div>
 
@@ -580,6 +583,7 @@ function renderCashFlow(el) {
         <button class="btn-sm teal" onclick="appSyncVouchersToCashFlow()">Sync from Vouchers</button>
         <button class="btn-sm" onclick="appOpenSOAUpload()">Upload SOA PDF</button>
         <button class="btn-sm" onclick="appAddCashFlow()">+ Entry</button>
+        <button class="btn-sm" onclick="appNavigateBack()">Back</button>
       </div>
     </div>
 
@@ -739,6 +743,7 @@ function renderPayroll(el) {
         <div class="sub">Permanent employees only. Auto-computes gross, deductions, net pay.</div>
       </div>
       <button class="btn-sm teal" onclick="appRunPayroll()">Run Payroll</button>
+      <button class="btn-sm" onclick="appNavigateBack()">Back</button>
     </div>
 
     <div class="kpi-row">
@@ -802,6 +807,7 @@ function renderBlogger(el) {
         <div class="sub">Create and publish blog updates. QR code generated for each post.</div>
       </div>
       <button class="btn-sm teal" onclick="appOpenBlogModal()">+ New Post</button>
+      <button class="btn-sm" onclick="appNavigateBack()">Back</button>
     </div>
 
     <div class="card">
@@ -1042,6 +1048,7 @@ function renderLeave(el) {
         <div class="sub">${myEmp ? "Start date: " + fmtDate(myEmp.joinDate) + ". " + myLeave.message : "Not enrolled as an employee."}</div>
       </div>
       ${myEmp && myLeave.eligible ? `<button class="btn-sm teal" onclick="appOpenLeaveModal()">+ File Leave</button>` : `<button class="btn-sm" disabled style="opacity:0.5;">Not yet eligible for paid leave (needs 1 year from start date)</button>`}
+      <button class="btn-sm" onclick="appNavigateBack()">Back</button>
     </div>
 
     <div class="kpi-row">
@@ -1235,6 +1242,7 @@ function renderOvertime(el) {
         <div class="sub">Request OT hours or offset (time-off in lieu).</div>
       </div>
       <button class="btn-sm teal" onclick="appOpenOTModal()">+ Request</button>
+      <button class="btn-sm" onclick="appNavigateBack()">Back</button>
     </div>
 
     <div class="card">
@@ -1326,6 +1334,7 @@ function renderInvoice(el) {
         <div class="sub">Create and track client invoices.</div>
       </div>
       <button class="btn-sm teal" onclick="appOpenInvoiceModal()">+ New Invoice</button>
+      <button class="btn-sm" onclick="appNavigateBack()">Back</button>
     </div>
 
     <div class="kpi-row">
@@ -1424,6 +1433,7 @@ function renderTasks(el) {
         <div class="sub">Track daily tasks per staff member.</div>
       </div>
       <button class="btn-sm teal" onclick="appOpenTaskModal()">+ Add Task</button>
+      <button class="btn-sm" onclick="appNavigateBack()">Back</button>
     </div>
 
     <div class="card">
@@ -1532,6 +1542,7 @@ function renderAudit(el) {
         <div class="sub">Every action is recorded: who did what and when.</div>
       </div>
       <button class="btn-sm" onclick="appClearAudit()">Clear Logs</button>
+      <button class="btn-sm" onclick="appNavigateBack()">Back</button>
     </div>
 
     <div class="card">
@@ -1575,6 +1586,7 @@ function renderAdmin(el) {
         <div class="sub">Add, edit, block or delete admins. Main admin: ${ADMIN_EMAIL}</div>
       </div>
       <button class="btn-sm teal" onclick="appOpenAdminModal()">+ Add Admin</button>
+      <button class="btn-sm" onclick="appNavigateBack()">Back</button>
     </div>
 
     <div class="card">
@@ -1703,6 +1715,7 @@ function renderStaff(el) {
         <div class="sub">Enroll staff into the system. Only enrolled staff can file leave.</div>
       </div>
       <button class="btn-sm teal" onclick="appOpenStaffModal()">+ Enroll Staff</button>
+      <button class="btn-sm" onclick="appNavigateBack()">Back</button>
     </div>
 
     <div class="card">
@@ -1817,6 +1830,7 @@ function renderControls(el) {
         <h2>Controls Checklist</h2>
         <div class="sub">Tick the boxes for office controls and processes.</div>
       </div>
+      <button class="btn-sm" onclick="appNavigateBack()">Back</button>
     </div>
 
     <div class="card">
@@ -1887,7 +1901,8 @@ function updateControlsStatus() {
 /* ==========================================================================
    GLOBAL ROUTER / INIT
    ========================================================================== */
-window.appNavigate = (key) => { renderModule(key); closeSidebar(); };
+window.appNavigate = (key) => { if (key !== currentModule) { previousModule = currentModule; } currentModule = key; renderModule(key); closeSidebar(); };
+window.appNavigateBack = () => { if (previousModule) { const prev = previousModule; previousModule = null; currentModule = prev; renderModule(prev); closeSidebar(); } else { appNavigate('dashboard'); } };
 
 async function initApp() {
   await init();
