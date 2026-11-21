@@ -389,6 +389,179 @@ input, select, textarea {
 
 .login-footer a { color: var(--teal-dark); font-weight: 700; text-decoration: none; }
 
+/* ========================= LAMP-FIRST LOGIN LAYOUT ========================= */
+.login-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Lamp hero — shown first */
+.lamp-hero {
+  flex: 0 0 auto;
+  background: linear-gradient(135deg, #004d40 0%, #006064 45%, #0097a7 100%);
+  padding: 60px 20px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.lamp-hero-inner {
+  text-align: center;
+  color: #fff;
+  max-width: 700px;
+}
+
+.lamp-hero .lamp {
+  width: 250px;
+  height: 300px;
+  margin: 0 auto 24px;
+  filter: drop-shadow(0 24px 40px rgba(0,0,0,0.45));
+}
+
+.lamp-hero-text h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 900;
+  letter-spacing: -1px;
+  margin: 0 0 10px;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.35);
+}
+
+.lamp-hero-text p {
+  font-size: 1.15rem;
+  color: #b2dfdb;
+  margin: 0 0 18px;
+  font-weight: 600;
+}
+
+.lamp-hero-hint {
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.8);
+  margin-top: 8px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Login card — shown after lamp */
+.login-card {
+  flex: 1;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.login-card-body {
+  width: 100%;
+  max-width: 420px;
+  padding: 0 10px;
+}
+
+.login-brand {
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: var(--ink);
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+}
+
+.login-sub {
+  color: var(--ink-dim);
+  font-size: 0.95rem;
+  margin-bottom: 26px;
+}
+
+.login-form { display: flex; flex-direction: column; gap: 16px; }
+
+.login-field { position: relative; }
+
+.login-field input {
+  width: 100%;
+  padding: 14px 16px 14px 48px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  box-sizing: border-box;
+}
+.login-field input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 4px rgba(0,151,167,0.12);
+}
+.login-field input::placeholder { color: #9bb2b9; }
+
+.login-field svg {
+  position: absolute;
+  left: 14px; top: 50%;
+  transform: translateY(-50%);
+  width: 19px; height: 19px;
+  color: var(--ink-dim);
+}
+
+#togglePassword {
+  position: absolute;
+  right: 14px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  color: #6b838c; font-size: 0.85rem; font-weight: 700;
+  cursor: pointer; padding: 4px;
+}
+#togglePassword:hover { color: var(--teal-dark); }
+
+.login-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 0.85rem; color: var(--ink-dim);
+  margin-bottom: 6px;
+}
+
+.login-remember {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+}
+.login-remember input { width: 16px; height: 16px; accent-color: var(--teal); }
+
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--teal);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  border-radius: 12px;
+  margin-top: 6px;
+  transition: background 0.2s, transform 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+.login-btn:hover { background: var(--teal-dark); transform: translateY(-1px); }
+.login-btn:active { transform: translateY(0); }
+
+.login-footer {
+  margin-top: 24px;
+  font-size: 0.78rem;
+  color: #8aa3ab;
+  text-align: center;
+}
+
+/* Hide unused old social/divider if present */
+.login-divider, .login-social { display: none; }
+
+/* Laptop / desktop tuning */
+@media (min-width: 768px) {
+  .lamp-hero { padding: 80px 40px 60px; }
+  .lamp-hero .lamp { width: 300px; height: 360px; }
+  .login-card { padding: 60px 20px; }
+}
+
+@media (max-width: 600px) {
+  .lamp-hero .lamp { width: 200px; height: 240px; margin-bottom: 16px; }
+  .lamp-hero-text h1 { font-size: 2rem; }
+  .login-card { padding: 30px 16px; }
+}
+
 @keyframes lampFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
 @keyframes glowPulse { 0%,100%{opacity:0.55;transform:translateX(-50%) scale(1)} 50%{opacity:0.85;transform:translateX(-50%) scale(1.15)} }
 @keyframes dropDrip { 0%,100%{transform:translateX(-50%) translateY(0);opacity:1} 60%{transform:translateX(-50%) translateY(10px);opacity:0.6} }

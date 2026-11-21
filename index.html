@@ -9,9 +9,9 @@
 <body>
 
 <div class="login-shell" id="loginShell">
-  <div class="login-wrap">
-    <!-- Left: lamp illustration -->
-    <div class="login-left">
+  <!-- Section 1: Lamp hero (first thing you see) -->
+  <div class="lamp-hero">
+    <div class="lamp-hero-inner">
       <div class="lamp">
         <div class="lamp-cord"></div>
         <div class="lamp-shade"></div>
@@ -22,12 +22,19 @@
         <div class="lamp-glow"></div>
         <div class="lamp-drop"></div>
       </div>
-      <h1>Control Center</h1>
-      <p>Office management system &bull; Sign in to your account</p>
+      <div class="lamp-hero-text">
+        <h1>Control Center</h1>
+        <p>Office management system</p>
+      </div>
+      <div class="lamp-hero-hint">
+        Sign in to continue
+      </div>
     </div>
+  </div>
 
-    <!-- Right: sign in form -->
-    <div class="login-right">
+  <!-- Section 2: Login form -->
+  <div class="login-card">
+    <div class="login-card-body">
       <div class="login-brand">Control Center</div>
       <div class="login-sub">Sign in to continue to your office dashboard</div>
 
@@ -39,26 +46,21 @@
         <div class="login-field">
           <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 7v9a2 2 0 002 2h16a2 2 0 002-2V7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <input type="password" id="loginPassword" placeholder="Password" required autocomplete="current-password">
-          <button type="button" id="togglePassword" class="login-toggle" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#6b838c;font-size:1rem;">Show</button>
+          <button type="button" id="togglePassword">Show</button>
         </div>
         <div class="login-actions">
           <label class="login-remember">
             <input type="checkbox" id="rememberMe"> Remember me
           </label>
-          <a href="#" id="forgotLink">Forgot?</a>
+          <a href="#" id="forgotLink">Forgot password?</a>
         </div>
         <button type="submit" class="login-btn">Sign In &rarr;</button>
       </form>
 
-      <div class="login-divider"><span>OR CONTINUE WITH</span></div>
-      <div class="login-social">
-        <button type="button"><span style="width:16px;height:16px;background:#4285f4;border-radius:3px;display:inline-block;margin-right:6px;"></span> Google</button>
-        <button type="button"><span style="width:18px;height:18px;background:#3b5998;border-radius:4px;display:inline-block;margin-right:6px;"></span> Apple</button>
+      <div id="loginError" style="color:#d32f2f;font-weight:700;font-size:0.8rem;display:none;margin-top:10px;text-align:center;"></div>
+      <div class="login-footer">
+        Office Control Center &bull; Main Admin: dcchamie25@gmail.com
       </div>
-    </div>
-
-    <div class="login-footer">
-      <span id="loginError" style="color:#d32f2f;font-weight:700;font-size:0.78rem;display:none;margin-left:8px;"></span>
     </div>
   </div>
 </div>
