@@ -12,7 +12,7 @@
 
 const { load, save } = require("./store");
 
-const ALLOWED = new Set(["users","vouchers","cashflow","payroll","blogs","invoices","leaves","overtime","tasks","audit","employees","soaUploads"]);
+const ALLOWED = new Set(["users","vouchers","cashflow","payroll","blogs","invoices","leaves","overtime","tasks","audit","employees","soaUploads","studentRequests"]);
 
 function json(res, status, body) {
   res.statusCode = status;

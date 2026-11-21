@@ -30,6 +30,7 @@ let state = {
   payroll: [],
   blogs: [],
   invoices: [],
+  studentRequests: [],
   leaves: [],
   overtime: [],
   tasks: [],
@@ -41,11 +42,15 @@ let currentUser = null;
 let currentModule = 'dashboard';
 let previousModule = null;
 
+// Tab States for Multi-Tab Modules
+let leaveActiveTab = 'file'; // 'file' | 'approval' | 'balances' | 'my'
+let invoiceActiveTab = 'portal'; // 'portal' | 'requests' | 'register'
+let taskActiveFilter = 'boxes'; // 'boxes' | 'my' | 'all'
+
 async function init() {
-  // Try loading full state from API in parallel first
   let loaded = false;
   try {
-    const [users, sessions, audit, employees, vouchers, cashflow, payroll, blogs, invoices, leaves, overtime, tasks, notifications, soaUploads, admins] = await Promise.all([
+    const [users, sessions, audit, employees, vouchers, cashflow, payroll, blogs, invoices, leaves, overtime, tasks, notifications, soaUploads, studentRequests, admins] = await Promise.all([
       api.list("users"),
       api.list("sessions"),
       api.list("audit"),
@@ -60,6 +65,7 @@ async function init() {
       api.list("tasks"),
       api.list("notifications"),
       api.list("soaUploads"),
+      api.list("studentRequests").catch(() => []),
       api.listAdmins().catch(() => [])
     ]);
     state = {
@@ -73,6 +79,7 @@ async function init() {
       payroll: payroll || [],
       blogs: blogs || [],
       invoices: invoices || [],
+      studentRequests: studentRequests || [],
       leaves: leaves || [],
       overtime: overtime || [],
       tasks: tasks || [],
@@ -81,7 +88,6 @@ async function init() {
     };
     loaded = true;
   } catch (e) {
-    // API unreachable — use localStorage
     const s = lsLoad("state");
     if (s) state = s;
     loaded = false;
@@ -89,7 +95,7 @@ async function init() {
   seedIfEmpty();
   persist();
 
-  // Restore current user session from storage or API
+  // Restore current user session
   const storedUserId = sessionStorage.getItem("cc_user") || localStorage.getItem("cc_user");
   if (storedUserId) {
     currentUser = state.users.find(u => u.id === storedUserId || u.email.toLowerCase() === storedUserId.toLowerCase());
@@ -125,20 +131,20 @@ function seedIfEmpty() {
 
   if (!state.admins || state.admins.length === 0) {
     state.admins = [
-      { id: "a0", email: "actinst.admin@gmail.com", name: "ACTI Admin", role: "admin", status: "active", createdAt: nowIso() },
-      { id: "a1", email: "dcchamie25@gmail.com", name: "Chamie D.", role: "admin", status: "active", createdAt: nowIso() }
+      { id: "a0", email: "actinst.admin@gmail.com", name: "ACTI Admin", role: "admin", status: "active", permissions: ["*"], createdAt: nowIso() },
+      { id: "a1", email: "dcchamie25@gmail.com", name: "Chamie D.", role: "admin", status: "active", permissions: ["*"], createdAt: nowIso() }
     ];
   }
 
   if (!state.employees || state.employees.length === 0) {
     state.employees = [
-      { id: "e0", name: "ACTI Admin", email: "actinst.admin@gmail.com", type: "super_admin", status: "Active", joinDate: "2022-01-01", contractStartDate: "2022-01-01", permanentDate: "2022-01-01", salary: 50000, leaveBalance: 15, enrolled: true },
-      { id: "e1", name: "Angelina A. Aquino", email: "actianj@gmail.com", type: "supervisor", status: "Active", joinDate: "2022-01-15", contractStartDate: "2022-01-15", permanentDate: "2022-01-15", salary: 38000, leaveBalance: 14, enrolled: true },
-      { id: "e2", name: "Danica R. Tuliao", email: "actitrish0303@gmail.com", type: "staff", status: "Active", joinDate: "2022-10-03", contractStartDate: "2022-10-03", permanentDate: "2022-10-03", salary: 28000, leaveBalance: 10, enrolled: true },
-      { id: "e3", name: "Charmaine Mallillin", email: "charmaine.mallillin@gmail.com", type: "regular", status: "Active", joinDate: "2022-10-03", contractStartDate: "2022-10-03", permanentDate: "2022-10-03", salary: 28000, leaveBalance: 10, enrolled: true },
-      { id: "e4", name: "Maria Santos", email: "maria@office.local", type: "permanent", status: "Active", joinDate: "2023-01-15", contractStartDate: "2023-01-15", permanentDate: "2023-01-15", salary: 28000, leaveBalance: 14, enrolled: true },
-      { id: "e5", name: "John Reyes", email: "john@office.local", type: "permanent", status: "Active", joinDate: "2022-06-10", contractStartDate: "2022-06-10", permanentDate: "2022-06-10", salary: 32000, leaveBalance: 10, enrolled: true },
-      { id: "e6", name: "Chamie D.", email: "dcchamie25@gmail.com", type: "super_admin", status: "Active", joinDate: "2022-01-01", contractStartDate: "2022-01-01", permanentDate: "2022-01-01", salary: 50000, leaveBalance: 15, enrolled: true }
+      { id: "e0", name: "ACTI Admin", email: "actinst.admin@gmail.com", designation: "Super Admin", type: "super_admin", status: "Active", joinDate: "2022-01-01", contractStartDate: "2022-01-01", permanentDate: "2022-01-01", contactNumber: "09171234567", salary: 50000, leaveBalance: 15, enrolled: true },
+      { id: "e1", name: "Angelina A. Aquino", email: "actianj@gmail.com", designation: "Supervisor", type: "supervisor", status: "Active", joinDate: "2022-01-15", contractStartDate: "2022-01-15", permanentDate: "2022-01-15", contactNumber: "09175550101", salary: 38000, leaveBalance: 14, enrolled: true },
+      { id: "e2", name: "Danica R. Tuliao", email: "actitrish0303@gmail.com", designation: "Admin Staff", type: "staff", status: "Active", joinDate: "2022-10-03", contractStartDate: "2022-10-03", permanentDate: "2022-10-03", contactNumber: "09185550202", salary: 28000, leaveBalance: 10, enrolled: true },
+      { id: "e3", name: "Charmaine Mallillin", email: "charmaine.mallillin@gmail.com", designation: "Regular Staff", type: "regular", status: "Active", joinDate: "2022-10-03", contractStartDate: "2022-10-03", permanentDate: "2022-10-03", contactNumber: "09195550303", salary: 28000, leaveBalance: 10, enrolled: true },
+      { id: "e4", name: "Maria Santos", email: "maria@office.local", designation: "Admin Assistant", type: "permanent", status: "Active", joinDate: "2023-01-15", contractStartDate: "2023-01-15", permanentDate: "2023-01-15", contactNumber: "09205550404", salary: 28000, leaveBalance: 14, enrolled: true },
+      { id: "e5", name: "John Reyes", email: "john@office.local", designation: "Accounting Clerk", type: "permanent", status: "Active", joinDate: "2022-06-10", contractStartDate: "2022-06-10", permanentDate: "2022-06-10", contactNumber: "09215550505", salary: 32000, leaveBalance: 10, enrolled: true },
+      { id: "e6", name: "Chamie D.", email: "dcchamie25@gmail.com", designation: "Manager / Super Admin", type: "super_admin", status: "Active", joinDate: "2022-01-01", contractStartDate: "2022-01-01", permanentDate: "2022-01-01", contactNumber: "09179998877", salary: 50000, leaveBalance: 15, enrolled: true }
     ];
   } else {
     SUPER_ADMINS.forEach((admEmail, idx) => {
@@ -147,11 +153,13 @@ function seedIfEmpty() {
           id: idx === 0 ? "e0" : "e6",
           name: idx === 0 ? "ACTI Admin" : "Chamie D.",
           email: admEmail,
+          designation: "Super Admin",
           type: "super_admin",
           status: "Active",
           joinDate: "2022-01-01",
           contractStartDate: "2022-01-01",
           permanentDate: "2022-01-01",
+          contactNumber: "09171234567",
           salary: 50000,
           leaveBalance: 15,
           enrolled: true
@@ -182,18 +190,82 @@ function seedIfEmpty() {
   }
   if (!state.leaves || state.leaves.length === 0) {
     state.leaves = [
-      { id: "l1", employeeName: "Maria Santos", employeeEmail: "maria@office.local", type: "Vacation", from: "2026-11-20", to: "2026-11-22", days: 3, reason: "Personal family leave", status: "approved", createdAt: nowIso(), approvedBy: ADMIN_EMAIL },
+      {
+        id: "l1",
+        employeeName: "Edlene G. Lobendino",
+        employeeEmail: "edlene@office.local",
+        designation: "Admin Staff",
+        contactNumber: "9693195520",
+        type: "Academic Leave",
+        from: "2026-11-11",
+        to: "2026-11-11",
+        days: 1,
+        reason: "Final Examination in Legal and Judicial Ethics",
+        status: "approved",
+        disapprovalReason: "",
+        recommendedBy: "ANGELINA A. AQUINO",
+        approvedBy: "PATRICIA FAE C. RAMEL, CPA",
+        createdAt: "2026-11-10T08:00:00.000Z"
+      }
     ];
   }
   if (!state.tasks || state.tasks.length === 0) {
     state.tasks = [
-      { id: "t1", employeeId: "e1", title: "Prepare monthly voucher report", status: "in progress", due: "2026-11-25", progress: 60, createdAt: nowIso() },
-      { id: "t2", employeeId: "e2", title: "Client seminar enrollment prep", status: "pending", due: "2026-11-23", progress: 20, createdAt: nowIso() },
+      { id: "t1", employeeId: "e1", title: "Review & approve daily payment vouchers", status: "done", due: "2026-11-21", progress: 100, createdAt: nowIso() },
+      { id: "t2", employeeId: "e1", title: "Audit student POP uploads and refund queue", status: "in progress", due: "2026-11-22", progress: 50, createdAt: nowIso() },
+      { id: "t3", employeeId: "e2", title: "Prepare auto vouchers for office supplies", status: "done", due: "2026-11-21", progress: 100, createdAt: nowIso() },
+      { id: "t4", employeeId: "e2", title: "Log new student inquiries and invoice requests", status: "in progress", due: "2026-11-22", progress: 50, createdAt: nowIso() },
+      { id: "t5", employeeId: "e3", title: "Publish weekly accounting blog update & QR code", status: "done", due: "2026-11-21", progress: 100, createdAt: nowIso() },
+      { id: "t6", employeeId: "e4", title: "Conduct daily cash count and balance petty cash", status: "done", due: "2026-11-21", progress: 100, createdAt: nowIso() },
+      { id: "t7", employeeId: "e5", title: "Upload monthly Statement of Account (SOA) PDF", status: "pending", due: "2026-11-23", progress: 0, createdAt: nowIso() }
+    ];
+  }
+  if (!state.studentRequests || state.studentRequests.length === 0) {
+    state.studentRequests = [
+      {
+        id: "sr1",
+        type: "invoice",
+        studentName: "Juan Dela Cruz",
+        contactNumber: "09171239876",
+        email: "juan.delacruz@student.local",
+        studentId: "ACTI-2026-088",
+        program: "Certified Accounting Technician (CAT)",
+        datePaid: "2026-11-19",
+        paymentMethod: "GCash",
+        refNumber: "GC-982144512",
+        amount: 8500,
+        popUrl: "",
+        popName: "receipt_gcash_8500.jpg",
+        notes: "Request for Official Receipt for company sponsorship reimbursement",
+        status: "verified",
+        issuedInvoiceRef: "INV-2026-001",
+        createdAt: nowIso()
+      },
+      {
+        id: "sr2",
+        type: "refund",
+        studentName: "Kristine Joy Mendoza",
+        contactNumber: "09289871122",
+        email: "kristine.mendoza@student.local",
+        studentId: "ACTI-2026-112",
+        program: "CPA Board Review Class",
+        datePaid: "2026-11-15",
+        paymentMethod: "BDO Online",
+        refNumber: "BDO-09281273",
+        amount: 12000,
+        refundAmount: 12000,
+        refundReason: "Schedule conflict with masteral classes",
+        disbursementAccount: "BDO Account: 001234567890 (Kristine Joy Mendoza)",
+        popUrl: "",
+        popName: "bdo_transfer_proof.pdf",
+        status: "pending",
+        createdAt: nowIso()
+      }
     ];
   }
   if (!state.audit || state.audit.length === 0) {
     state.audit = [
-      { id: "a1", userId: "u1", email: ADMIN_EMAIL, action: "system_init", target: "Control Center", meta: "System ready and verified", at: nowIso() },
+      { id: "a1", userId: "u1", email: ADMIN_EMAIL, action: "system_init", target: "Control Center", meta: "System initialized and ready", at: nowIso() },
     ];
   }
 }
@@ -232,7 +304,7 @@ function renderNotifBadge() {
   else el.style.display = "none";
 }
 
-/* ---------------- Auth ---------------- */
+/* ---------------- Auth & Permissions ---------------- */
 async function login(email, password) {
   const result = await api.login(email);
   const user = result.user;
@@ -256,8 +328,26 @@ async function logout() {
   window.location.href = "index.html";
 }
 
-function isAdmin() { return currentUser && (currentUser.role === "admin" || SUPER_ADMINS.includes(currentUser.email.toLowerCase())); }
-function isStaff() { return currentUser && currentUser.role === "staff"; }
+function isAdmin() {
+  return currentUser && (currentUser.role === "admin" || SUPER_ADMINS.includes(currentUser.email.toLowerCase()));
+}
+function isSuperAdmin() {
+  return currentUser && SUPER_ADMINS.includes(currentUser.email.toLowerCase());
+}
+
+function hasModuleAccess(key) {
+  if (isSuperAdmin()) return true;
+  if (!currentUser) return false;
+  // Dashboard is open to all logged-in users
+  if (key === "dashboard") return true;
+  const adminRec = (state.admins || []).find(a => a.email.toLowerCase() === currentUser.email.toLowerCase());
+  if (adminRec) {
+    if (!adminRec.permissions || adminRec.permissions.includes("*") || adminRec.permissions.length === 0) return true;
+    return adminRec.permissions.includes(key);
+  }
+  // Standard staff default accessible modules
+  return ["dashboard", "leave", "overtime", "tasks", "invoice"].includes(key);
+}
 
 function currentUserName() { return currentUser ? currentUser.name : "User"; }
 function currentUserInitials() {
@@ -310,12 +400,12 @@ const MODULES = [
   { key: "blogger", label: "Blogger Automation", hash: "#/blogger", svg: '<svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
   { key: "leave", label: "Online Leave", hash: "#/onlineleavefiling", svg: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/><line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2.2"/><line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" stroke-width="2.2"/><line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" stroke-width="2.2"/></svg>' },
   { key: "overtime", label: "Overtime", hash: "#/overtime", svg: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2.2"/><polyline points="12 6 12 12 16 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' },
-  { key: "invoice", label: "Invoices", hash: "#/invoice", svg: '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2.2"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2.2"/><polyline points="10 9 9 9 8 9" stroke="currentColor" stroke-width="2.2"/></svg>' },
-  { key: "tasks", label: "Tasks", hash: "#/tasks", svg: '<svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>' },
+  { key: "invoice", label: "Student Invoices & Refunds", hash: "#/invoice", svg: '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2.2"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2.2"/><polyline points="10 9 9 9 8 9" stroke="currentColor" stroke-width="2.2"/></svg>' },
+  { key: "tasks", label: "Staff Daily Tasks", hash: "#/tasks", svg: '<svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>' },
   { key: "staff", label: "Staff Enrollment", hash: "#/staff", svg: '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="9" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>' },
   { key: "controls", label: "Controls Checklist", hash: "#/controls", svg: '<svg viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" fill="none" stroke="currentColor" stroke-width="2.2"/></svg>' },
   { key: "audit", label: "Audit Logs", hash: "#/audit", svg: '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
-  { key: "admin", label: "Admins", hash: "#/admin", svg: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M6 20v-2a6 6 0 0112 0v2" fill="none" stroke="currentColor" stroke-width="2.2"/><line x1="19" y1="11" x2="23" y2="11" stroke="currentColor" stroke-width="2.2"/></svg>' }
+  { key: "admin", label: "Admins & Permissions", hash: "#/admin", svg: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M6 20v-2a6 6 0 0112 0v2" fill="none" stroke="currentColor" stroke-width="2.2"/><line x1="19" y1="11" x2="23" y2="11" stroke="currentColor" stroke-width="2.2"/></svg>' }
 ];
 
 function renderSidebar() {
@@ -324,7 +414,7 @@ function renderSidebar() {
 
   list.innerHTML = "";
   MODULES.forEach(m => {
-    if ((m.key === "admin" || m.key === "audit") && !isAdmin()) return;
+    if (!hasModuleAccess(m.key)) return;
     const li = document.createElement("li");
     li.className = "nav-item";
     const link = document.createElement("a");
@@ -355,7 +445,7 @@ function renderTopbarUser() {
     <div class="user-avatar-mini" title="${currentUser ? currentUser.email : ''}">${currentUserInitials()}</div>
     <div class="user-meta-mini">
       <div class="user-name-mini">${escapeHtml(currentUserName())}</div>
-      <div class="user-role-mini">${currentUser && (currentUser.role === 'admin' || SUPER_ADMINS.includes(currentUser.email.toLowerCase())) ? 'Super Admin' : 'Staff'}</div>
+      <div class="user-role-mini">${isSuperAdmin() ? 'Super Admin' : (isAdmin() ? 'Admin' : 'Staff')}</div>
     </div>
     <button class="btn-topbar-logout" id="btnLogout" title="Sign Out">
       <svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="16 17 21 12 16 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="21" y1="12" x2="14" y2="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -373,6 +463,20 @@ function setActiveNav(key) {
 }
 
 function renderModule(key) {
+  if (!hasModuleAccess(key)) {
+    const content = $q("#appContent");
+    if (content) {
+      content.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">🔒</div>
+          <h3>Access Restricted</h3>
+          <p>You do not have permission to view the ${escapeHtml(key)} module. Contact a Super Admin for access.</p>
+          <button class="btn-sm teal" style="margin-top:14px;" onclick="appNavigate('dashboard')">Return to Dashboard</button>
+        </div>`;
+    }
+    return;
+  }
+
   setActiveNav(key);
   const titleMap = {
     dashboard: "Dashboard",
@@ -382,12 +486,12 @@ function renderModule(key) {
     blogger: "Blogger Automation",
     leave: "Online Leave Filing",
     overtime: "Overtime / Offset",
-    invoice: "Invoices",
-    tasks: "Daily Tasks",
+    invoice: "Student Invoices & Refunds",
+    tasks: "Staff Daily Tasks",
     staff: "Staff Enrollment",
     controls: "Controls Checklist",
     audit: "Audit Logs",
-    admin: "Admins"
+    admin: "Admins & Permissions"
   };
   const titleEl = $q("#pageTitle");
   if (titleEl) titleEl.textContent = titleMap[key] || (key.charAt(0).toUpperCase() + key.slice(1));
@@ -420,7 +524,7 @@ function renderDashboard(el) {
   const totalExpense = state.vouchers.filter(v => v.type === "expense").reduce((a, v) => a + Number(v.amount || 0), 0);
   const pendingLeave = state.leaves.filter(l => l.status === "pending").length;
   const pendingOT = state.overtime.filter(o => o.status === "pending").length;
-  const pendingInv = state.invoices.filter(i => i.status !== "paid").length;
+  const pendingStudentReq = (state.studentRequests || []).filter(r => r.status === "pending").length;
 
   el.innerHTML = `
     <div class="module-header">
@@ -455,12 +559,12 @@ function renderDashboard(el) {
       <div class="kpi">
         <div class="kpi-label">Pending OT</div>
         <div class="kpi-value">${pendingOT}</div>
-        <div class="kpi-delta neu">requests</div>
+        <div class="kpi-delta neu">claims</div>
       </div>
       <div class="kpi">
-        <div class="kpi-label">Unpaid Invoices</div>
-        <div class="kpi-value">${pendingInv}</div>
-        <div class="kpi-delta neu">outstanding</div>
+        <div class="kpi-label">Student Requests</div>
+        <div class="kpi-value">${pendingStudentReq}</div>
+        <div class="kpi-delta neu">OR & refunds pending</div>
       </div>
     </div>
 
@@ -472,7 +576,7 @@ function renderDashboard(el) {
           <button class="btn-sm" onclick="appNavigate('payroll')">Run Payroll</button>
           <button class="btn-sm" onclick="appNavigate('leave')">File Leave</button>
           <button class="btn-sm" onclick="appNavigate('overtime')">OT Request</button>
-          <button class="btn-sm" onclick="appNavigate('invoice')">Request Invoice</button>
+          <button class="btn-sm" onclick="appNavigate('invoice')">Student Invoice / OR</button>
           <button class="btn-sm" onclick="appNavigate('blogger')">New Blog Post</button>
         </div>
       </div>
@@ -487,7 +591,7 @@ function renderDashboard(el) {
       </div>
     </div>
     <div class="card" style="margin-top:20px;">
-      <div class="card-header"><h3>Staff Daily Tasks</h3><div class="card-actions"><button class="btn-sm" onclick="appNavigate('tasks')">View All</button></div></div>
+      <div class="card-header"><h3>Staff Daily Tasks Overview</h3><div class="card-actions"><button class="btn-sm" onclick="appNavigate('tasks')">View Task Boxes</button></div></div>
       <div class="card-body">
         <table>
           <thead><tr><th>Task</th><th>Staff</th><th>Status</th><th>Due</th><th>Progress</th></tr></thead>
@@ -504,7 +608,7 @@ function renderDashboard(el) {
   `).join("") || `<tr><td colspan="4" style="text-align:center;color:var(--ink-dim);padding:20px;">No recent activity</td></tr>`;
 
   const taskBody = $q("#recentTasks");
-  const tasks = state.tasks.slice(0, 5).map(t => {
+  const tasks = state.tasks.slice(0, 6).map(t => {
     const emp = state.employees.find(e => e.id === t.employeeId);
     return { ...t, empName: emp ? emp.name : "Staff" };
   });
@@ -657,7 +761,6 @@ function appPostVoucher() {
   };
   state.vouchers.unshift(entry);
   audit("voucher_posted", entry.ref, `${d.type} ₱${Number(d.amount)} to ${d.payee}`);
-  // Cashflow mirror
   state.cashflow.unshift({
     id: "c" + Date.now(),
     date: d.date,
@@ -691,19 +794,19 @@ function appPrintVoucher(id) {
   .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f766e; padding-bottom: 16px; margin-bottom: 24px; }
   .logo-wrap { display: flex; align-items: center; gap: 14px; }
   .logo-wrap img { width: 64px; height: 64px; border-radius: 50%; }
-  .title-wrap h1 { margin: 0; font-size: 1.4rem; color: #0f766e; font-weight: 800; }
+  .title-wrap h1 { margin: 0; font-size: 1.4rem; color: #0f766e; font-weight: 700; }
   .title-wrap p { margin: 2px 0 0; font-size: 0.82rem; color: #64748b; }
   .ref-box { text-align: right; }
-  .ref-box .ref-num { font-size: 1.2rem; font-weight: 800; color: #0f766e; }
+  .ref-box .ref-num { font-size: 1.2rem; font-weight: 700; color: #0f766e; }
   .ref-box .ref-date { font-size: 0.85rem; color: #64748b; margin-top: 4px; }
-  .voucher-type-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; background: ${v.type === 'income' ? '#e8f5e9' : '#e0f2f1'}; color: ${v.type === 'income' ? '#059669' : '#0f766e'}; margin-bottom: 20px; }
+  .voucher-type-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; background: ${v.type === 'income' ? '#e8f5e9' : '#e0f2f1'}; color: ${v.type === 'income' ? '#059669' : '#0f766e'}; margin-bottom: 20px; }
   table.details { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
   table.details th, table.details td { padding: 12px 14px; border: 1px solid #cbd5e1; text-align: left; font-size: 0.95rem; }
-  table.details th { background: #f8fafc; font-weight: 700; width: 25%; color: #475569; }
-  .amount-highlight { font-size: 1.3rem; font-weight: 800; color: #0f766e; }
+  table.details th { background: #f8fafc; font-weight: 600; width: 25%; color: #475569; }
+  .amount-highlight { font-size: 1.3rem; font-weight: 700; color: #0f766e; }
   .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 50px; padding-top: 20px; }
   .sig-block { text-align: center; }
-  .sig-line { border-top: 1.5px solid #94a3b8; margin-top: 45px; padding-top: 6px; font-size: 0.82rem; font-weight: 700; color: #475569; }
+  .sig-line { border-top: 1.5px solid #94a3b8; margin-top: 45px; padding-top: 6px; font-size: 0.82rem; font-weight: 600; color: #475569; }
   .sig-sub { font-size: 0.75rem; color: #94a3b8; }
   .footer-note { margin-top: 40px; font-size: 0.75rem; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 12px; }
   @media print { body { padding: 0; } }
@@ -793,7 +896,7 @@ function renderVoucherList() {
 
 /* ==========================================================================
    MODULE: CASH FLOW + SOA
-   ========================================================================= */
+   ========================================================================== */
 function renderCashFlow(el) {
   const ins = state.cashflow.filter(c => c.type === "in").reduce((a,c)=>a+Number(c.amount||0),0);
   const outs = state.cashflow.filter(c => c.type === "out").reduce((a,c)=>a+Number(c.amount||0),0);
@@ -1336,7 +1439,7 @@ function renderQR(text, containerId) {
 }
 
 /* ==========================================================================
-   MODULE: LEAVE (filing + balance tracker)
+   MODULE: ONLINE LEAVE FILING (ACTI FORM & MULTI-TAB PORTAL)
    ========================================================================== */
 function leaveEligible(emp) {
   if (!emp) return { eligible: true, entitlement: 15, years: 2, permDate: "2022-01-01", message: "Admin leave access authorized" };
@@ -1357,272 +1460,1480 @@ function leaveEligible(emp) {
 
 function renderLeave(el) {
   const myEmp = currentUser ? state.employees.find(e => e.email.toLowerCase() === currentUser.email.toLowerCase()) : null;
-  const myLeave = myEmp ? leaveEligible(myEmp) : (isAdmin() ? { eligible: true, entitlement: 15, years: 2, permDate: "2022-01-01", message: "Admin leave access authorized" } : { eligible: true, entitlement: 15, years: 1, permDate: "2022-01-01", message: "Enrolled staff access" });
-  const pendingMy = currentUser ? state.leaves.filter(l => l.employeeEmail && l.employeeEmail.toLowerCase() === currentUser.email.toLowerCase() && l.status === "pending").length : 0;
-
-  const adminCard = isAdmin() ? `
-  <div class="card" style="margin-top:20px;">
-    <div class="card-header"><h3>Employee Leave List & Start Dates</h3></div>
-    <div class="card-body">
-      <table>
-        <thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Contract Start</th><th>Permanent Date</th><th>Leave Entitlement</th><th>Balance</th><th>Status</th></tr></thead>
-        <tbody id="empLeaveList"></tbody>
-      </table>
-    </div>
-  </div>
-  <div class="card" style="margin-top:12px;">
-    <div class="card-header"><h3>All Leave Requests (Admin)</h3><div class="card-actions"><button class="btn-sm" onclick="appNavigate('leave')">Refresh</button><button class="btn-sm teal" onclick="appPrintLeave()">Print Leave</button></div></div>
-    <div class="card-body">
-      <table>
-        <thead><tr><th>Employee</th><th>Email</th><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead>
-        <tbody id="leaveAdminList"></tbody>
-      </table>
-    </div>
-  </div>
-  ` : "";
-
-  const myName = currentUser ? currentUser.name : (myEmp ? myEmp.name : "Admin");
+  const myLeave = myEmp ? leaveEligible(myEmp) : { eligible: true, entitlement: 15, years: 2, permDate: "2022-01-01", message: "Enrolled Staff Access" };
+  const pendingCount = state.leaves.filter(l => l.status === "pending").length;
+  const myLeaves = currentUser ? state.leaves.filter(l => l.employeeEmail && l.employeeEmail.toLowerCase() === currentUser.email.toLowerCase()) : state.leaves;
 
   el.innerHTML = `
     <div class="module-header">
       <div>
         <h2>Online Leave Filing</h2>
-        <div class="sub">${myLeave.message}</div>
+        <div class="sub">Accounting Certification and Training Institute, Inc. • Cauayan City, Isabela</div>
       </div>
       <div class="card-actions">
-        <button class="btn-sm teal" onclick="appOpenLeaveModal()">+ File Leave</button>
+        <button class="btn-sm teal" onclick="appSwitchLeaveTab('file')">+ File Leave Form</button>
+        <button class="btn-sm" onclick="appPrintLeave()">Print Leave Summary</button>
         <button class="btn-sm" onclick="appNavigateBack()">Back</button>
       </div>
     </div>
 
-    <div class="kpi-row">
-      <div class="kpi"><div class="kpi-label">Employee Type</div><div class="kpi-value">${myEmp ? escapeHtml(myEmp.type) : "Staff"}</div><div class="kpi-delta neu">${escapeHtml(myName)}</div></div>
-      <div class="kpi"><div class="kpi-label">Date Started</div><div class="kpi-value">${myEmp ? fmtDate(myEmp.joinDate) : "Jan 1, 2022"}</div><div class="kpi-delta neu">${myLeave.years} year(s) of service</div></div>
-      <div class="kpi"><div class="kpi-label">Paid Leave Entitlement</div><div class="kpi-value">${myLeave.entitlement} days</div><div class="kpi-delta neu">per year</div></div>
-      <div class="kpi"><div class="kpi-label">Leave Balance</div><div class="kpi-value">${myEmp ? (myEmp.leaveBalance != null ? myEmp.leaveBalance : 15) : 15}</div><div class="kpi-delta neu">days remaining</div></div>
-      <div class="kpi"><div class="kpi-label">Pending Requests</div><div class="kpi-value">${pendingMy}</div><div class="kpi-delta neu">yours</div></div>
-      <div class="kpi"><div class="kpi-label">Total on File</div><div class="kpi-value">${state.leaves.length}</div><div class="kpi-delta neu">leave records</div></div>
+    <!-- Multi-Tabs -->
+    <div class="module-tabs">
+      <button class="tab-btn ${leaveActiveTab === 'file' ? 'active' : ''}" onclick="appSwitchLeaveTab('file')">
+        <span>📝 File Application Form</span>
+      </button>
+      <button class="tab-btn ${leaveActiveTab === 'approval' ? 'active' : ''}" onclick="appSwitchLeaveTab('approval')">
+        <span>⏳ Requests for Approval</span>
+        ${pendingCount > 0 ? `<span class="badge badge-warning" style="padding:2px 6px;font-size:0.7rem;">${pendingCount}</span>` : ''}
+      </button>
+      <button class="tab-btn ${leaveActiveTab === 'balances' ? 'active' : ''}" onclick="appSwitchLeaveTab('balances')">
+        <span>👥 Total Leave per Employee</span>
+      </button>
+      <button class="tab-btn ${leaveActiveTab === 'my' ? 'active' : ''}" onclick="appSwitchLeaveTab('my')">
+        <span>📋 My Filed Leaves (${myLeaves.length})</span>
+      </button>
     </div>
 
-    <div class="card">
-      <div class="card-header"><h3>My Leave Requests</h3></div>
-      <div class="card-body">
-        <table>
-          <thead><tr><th>Type</th><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th><th>Filed</th></tr></thead>
-          <tbody id="leaveList"></tbody>
-        </table>
-      </div>
-    </div>
-    ${adminCard}
+    <div id="leaveTabContent"></div>
   `;
 
-  const t = $q("#leaveList");
-  const mine = currentUser ? state.leaves.filter(l => l.employeeEmail && l.employeeEmail.toLowerCase() === currentUser.email.toLowerCase()) : state.leaves;
-  t.innerHTML = mine.map(l => `
-    <tr>
-      <td>${escapeHtml(l.type)}</td>
-      <td>${fmtDate(l.from)}</td>
-      <td>${fmtDate(l.to)}</td>
-      <td>${l.days}</td>
-      <td>${escapeHtml(l.reason)}</td>
-      <td><span class="badge ${l.status==='approved'?'badge-success':l.status==='pending'?'badge-warning':'badge-error'}">${escapeHtml(l.status)}</span></td>
-      <td>${fmtDate(l.createdAt)}</td>
-    </tr>
-  `).join("") || `<tr><td colspan="7" style="text-align:center;color:var(--ink-dim);padding:20px;">No leave requests filed yet</td></tr>`;
-
-  const elEmp = $q("#empLeaveList");
-  if (elEmp) {
-    elEmp.innerHTML = state.employees.map(emp => {
-      const elig = leaveEligible(emp);
-      return `<tr>
-        <td>${escapeHtml(emp.name)}</td>
-        <td>${escapeHtml(emp.email)}</td>
-        <td><span class="badge badge-info" style="text-transform:none;">${escapeHtml(emp.type)}</span></td>
-        <td>${fmtDate(emp.contractStartDate || emp.joinDate)}</td>
-        <td>${fmtDate(emp.permanentDate || emp.joinDate)}</td>
-        <td>${elig.entitlement} days/year</td>
-        <td>${emp.leaveBalance || 0} days</td>
-        <td><span class="badge ${emp.status==='Active'?'badge-bg':'badge-error'}">${escapeHtml(emp.status)}</span></td>
-      </tr>`;
-    }).join("");
-  }
-
-  const ta = $q("#leaveAdminList");
-  if (ta) {
-    ta.innerHTML = state.leaves.map(l => {
-      const action = l.status === "pending"
-        ? `<button class="btn-sm teal" style="padding:4px 8px;font-size:0.75rem;" onclick="appLeaveAction('${l.id}','approved')">Approve</button> <button class="btn-sm" style="padding:4px 8px;font-size:0.75rem;color:var(--error);" onclick="appLeaveAction('${l.id}','rejected')">Reject</button>`
-        : `<span style="font-size:0.78rem;color:var(--ink-dim);">${escapeHtml(l.approvedBy || "-")}</span>`;
-      return `<tr>
-        <td>${escapeHtml(l.employeeName)}</td>
-        <td>${escapeHtml(l.employeeEmail)}</td>
-        <td>${escapeHtml(l.type)}</td>
-        <td>${fmtDate(l.from)}</td>
-        <td>${fmtDate(l.to)}</td>
-        <td>${l.days}</td>
-        <td>${escapeHtml(l.reason)}</td>
-        <td><span class="badge ${l.status==='approved'?'badge-success':l.status==='pending'?'badge-warning':'badge-error'}">${escapeHtml(l.status)}</span></td>
-        <td>${action}</td>
-      </tr>`;
-    }).join("") || `<tr><td colspan="9" style="text-align:center;color:var(--ink-dim);padding:20px;">No leave requests</td></tr>`;
-  }
+  renderLeaveTabBody();
 }
 
-function appOpenLeaveModal() {
-  const myEmp = currentUser ? state.employees.find(e => e.email.toLowerCase() === currentUser.email.toLowerCase()) : null;
-  const myLeave = myEmp ? leaveEligible(myEmp) : { eligible: true, entitlement: 15, permDate: "2022-01-01" };
-  const empName = currentUser ? currentUser.name : (myEmp ? myEmp.name : "Employee");
-  const empEmail = currentUser ? currentUser.email : (myEmp ? myEmp.email : "");
-  const empBalance = myEmp ? (myEmp.leaveBalance || 15) : 15;
+function appSwitchLeaveTab(tab) {
+  leaveActiveTab = tab;
+  renderLeave($q("#appContent"));
+}
 
-  const mod = document.createElement("div");
-  mod.className = "modal-overlay";
-  mod.innerHTML = `
-    <div class="modal" style="max-width:560px;">
-      <div class="modal-header"><h3>File Leave Request</h3><button class="btn-close" onclick="this.closest('.modal-overlay').remove()">&times;</button></div>
-      <div class="modal-body">
-        <div class="form-grid">
-          <div class="field">
-            <label>Employee Name</label>
-            <input type="text" id="leaveEmpName" value="${escapeHtml(empName)}">
+function renderLeaveTabBody() {
+  const container = $q("#leaveTabContent");
+  if (!container) return;
+
+  const myEmp = currentUser ? state.employees.find(e => e.email.toLowerCase() === currentUser.email.toLowerCase()) : null;
+  const defaultEmpName = myEmp ? myEmp.name : (currentUser ? currentUser.name : "Edlene G. Lobendino");
+  const defaultDesignation = myEmp ? (myEmp.designation || myEmp.type) : "Admin Staff";
+  const defaultContact = myEmp ? (myEmp.contactNumber || "09175550101") : "09693195520";
+  const defaultBalance = myEmp ? (myEmp.leaveBalance != null ? myEmp.leaveBalance : 15) : 15;
+
+  if (leaveActiveTab === "file") {
+    container.innerHTML = `
+      <div class="acti-form-sheet">
+        <div class="acti-sheet-header">
+          <h3>ACCOUNTING CERTIFICATION AND TRAINING INSTITUTE, INC.</h3>
+          <p>2nd Floor Vicente Manlapaz Bldg., District 1, Cauayan City, Isabela</p>
+          <div class="acti-sheet-title">APPLICATION FOR LEAVE</div>
+        </div>
+
+        <form id="actiLeaveForm" onsubmit="event.preventDefault();appSubmitOfficialLeave();">
+          <div class="acti-sheet-section-title">1. Employee Information</div>
+          <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+            <div class="field">
+              <label>Date of Filing</label>
+              <input type="date" id="sheetFilingDate" value="${new Date().toISOString().split('T')[0]}" required>
+            </div>
+            <div class="field">
+              <label>Employee Name</label>
+              <select id="sheetEmpSelect" onchange="appOnLeaveEmpSelect(this.value)">
+                ${state.employees.map(e => `<option value="${e.id}" ${e.email.toLowerCase() === (currentUser ? currentUser.email.toLowerCase() : '') ? 'selected' : ''}>${escapeHtml(e.name)} (${escapeHtml(e.designation || e.type)})</option>`).join("")}
+              </select>
+            </div>
+            <div class="field">
+              <label>Designation</label>
+              <input type="text" id="sheetDesignation" value="${escapeHtml(defaultDesignation)}" placeholder="e.g. Admin Staff, Supervisor">
+            </div>
+            <div class="field">
+              <label>Contact Number</label>
+              <input type="text" id="sheetContact" value="${escapeHtml(defaultContact)}" placeholder="09xxxxxxxxx">
+            </div>
           </div>
-          <div class="field">
-            <label>Email</label>
-            <input type="email" id="leaveEmpEmail" value="${escapeHtml(empEmail)}">
+
+          <div class="acti-sheet-section-title">2. Details of Application</div>
+          <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+            <div class="field">
+              <label>Type of Leave Applied For</label>
+              <select id="sheetLeaveType" onchange="appToggleLeaveOther(this.value)">
+                <option value="Vacation Leave">Vacation Leave</option>
+                <option value="Sick Leave">Sick Leave</option>
+                <option value="Academic Leave" selected>Academic Leave</option>
+                <option value="Others">Others (Please Specify)</option>
+              </select>
+            </div>
+            <div class="field" id="sheetOtherTypeWrap" style="display:none;">
+              <label>Specify Other Leave</label>
+              <input type="text" id="sheetOtherTypeText" placeholder="Please specify type of leave">
+            </div>
+            <div class="field">
+              <label>Date From</label>
+              <input type="date" id="sheetDateFrom" value="${new Date().toISOString().split('T')[0]}" onchange="appComputeLeaveDays()" required>
+            </div>
+            <div class="field">
+              <label>Date To</label>
+              <input type="date" id="sheetDateTo" value="${new Date().toISOString().split('T')[0]}" onchange="appComputeLeaveDays()" required>
+            </div>
+            <div class="field">
+              <label>Number of Days</label>
+              <input type="number" id="sheetDays" value="1" min="1" step="0.5" required>
+            </div>
           </div>
-          <div class="field">
-            <label>Leave Type</label>
-            <select id="leaveType"><option>Vacation</option><option>Sick</option><option>Personal</option><option>Emergency</option></select>
+
+          <div class="field" style="margin-top:14px;">
+            <label>Reason for Leave</label>
+            <textarea id="sheetReason" rows="3" placeholder="e.g. Final Examination in Legal and Judicial Ethics" required></textarea>
           </div>
-          <div class="field">
-            <label>Date From</label>
-            <input type="date" id="leaveFrom" value="${new Date().toISOString().split('T')[0]}">
+
+          <div class="acti-sheet-section-title">3. Official Signatories & Approvals</div>
+          <div class="acti-sig-grid">
+            <div class="acti-sig-card">
+              <div class="acti-sig-label">Recommended By</div>
+              <div class="acti-sig-name">ANGELINA A. AQUINO</div>
+              <div class="acti-sig-role">Supervisor</div>
+            </div>
+            <div class="acti-sig-card">
+              <div class="acti-sig-label">Approved By</div>
+              <div class="acti-sig-name">PATRICIA FAE C. RAMEL, CPA</div>
+              <div class="acti-sig-role">Manager</div>
+            </div>
+            <div class="acti-sig-card">
+              <div class="acti-sig-label">Conforme By</div>
+              <div class="acti-sig-name" id="sheetConformeName">${escapeHtml(defaultEmpName)}</div>
+              <div class="acti-sig-role">Employee's Name &amp; Signature</div>
+            </div>
+            <div class="acti-sig-card">
+              <div class="acti-sig-label">Noted By</div>
+              <div class="acti-sig-name">CHAMIE D.</div>
+              <div class="acti-sig-role">Authorized Signatory</div>
+            </div>
           </div>
-          <div class="field">
-            <label>Date To</label>
-            <input type="date" id="leaveTo" value="${new Date().toISOString().split('T')[0]}">
+
+          <div style="margin-top:24px;display:flex;gap:12px;justify-content:flex-end;align-items:center;">
+            <span style="font-size:0.82rem;color:#64748b;">Current Leave Balance: <strong>${defaultBalance} days</strong></span>
+            <button type="button" class="btn-sm" onclick="appResetLeaveForm()">Reset</button>
+            <button type="submit" class="btn-primary" style="padding:10px 24px;">Submit Leave Application</button>
           </div>
-          <div class="field">
-            <label>Number of Days</label>
-            <input type="number" id="leaveDays" min="1" value="1">
+        </form>
+      </div>
+    `;
+  } else if (leaveActiveTab === "approval") {
+    container.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <h3>Leave Requests for Approval</h3>
+          <div class="card-actions">
+            <button class="btn-sm" onclick="renderLeaveTabBody()">Refresh</button>
           </div>
-          <div class="field" style="grid-column:1/-1;">
-            <label>Reason</label>
-            <textarea id="leaveReason" placeholder="Purpose or reason for leave"></textarea>
-          </div>
-          <div class="field">
-            <label>Paid Leave Balance</label>
-            <input type="number" id="leaveBal" value="${empBalance}" readonly style="background:var(--surface-2);">
-          </div>
-          <div class="hint" style="grid-column:1/-1;">Entitlement: ${myLeave.entitlement} days per year.</div>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead>
+              <tr>
+                <th>Filing Date</th>
+                <th>Employee</th>
+                <th>Designation</th>
+                <th>Type of Leave</th>
+                <th>Inclusive Dates</th>
+                <th>Days</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${state.leaves.map(l => {
+                const isPending = l.status === "pending";
+                return `
+                  <tr>
+                    <td>${fmtDate(l.createdAt)}</td>
+                    <td><strong>${escapeHtml(l.employeeName)}</strong></td>
+                    <td>${escapeHtml(l.designation || "Staff")}</td>
+                    <td><span class="badge badge-info" style="text-transform:none;">${escapeHtml(l.type)}</span></td>
+                    <td>${fmtDate(l.from)} — ${fmtDate(l.to)}</td>
+                    <td><strong>${l.days}</strong> day(s)</td>
+                    <td>${escapeHtml(l.reason)}</td>
+                    <td>
+                      <span class="badge ${l.status === 'approved' ? 'badge-success' : l.status === 'pending' ? 'badge-warning' : 'badge-error'}">
+                        ${escapeHtml(l.status)}
+                      </span>
+                      ${l.disapprovalReason ? `<div style="font-size:0.72rem;color:var(--error);margin-top:2px;">Reason: ${escapeHtml(l.disapprovalReason)}</div>` : ''}
+                    </td>
+                    <td style="display:flex;gap:6px;flex-wrap:wrap;">
+                      ${isPending && (isAdmin() || isSuperAdmin()) ? `
+                        <button class="btn-sm teal" style="padding:4px 8px;font-size:0.75rem;" onclick="appLeaveAction('${l.id}','approved')">Approve</button>
+                        <button class="btn-sm" style="padding:4px 8px;font-size:0.75rem;color:var(--error);" onclick="appDisapproveLeaveModal('${l.id}')">Disapprove</button>
+                      ` : ''}
+                      <button class="btn-sm" style="padding:4px 8px;font-size:0.75rem;" onclick="appPrintOfficialLeaveForm('${l.id}')">Print Form</button>
+                    </td>
+                  </tr>
+                `;
+              }).join("") || `<tr><td colspan="9" style="text-align:center;color:var(--ink-dim);padding:24px;">No leave requests</td></tr>`}
+            </tbody>
+          </table>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn-sm" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-        <button class="btn-sm teal" onclick="appSubmitLeave()">Submit Leave</button>
+    `;
+  } else if (leaveActiveTab === "balances") {
+    container.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <h3>Total Leave Entitlement & Balances per Employee</h3>
+          <div class="card-actions">
+            ${isAdmin() ? `<button class="btn-sm teal" onclick="appOpenStaffModal()">+ Enroll Staff</button>` : ''}
+          </div>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead>
+              <tr>
+                <th>Employee Name</th>
+                <th>Email</th>
+                <th>Designation</th>
+                <th>Date Started</th>
+                <th>Permanent Date</th>
+                <th>Annual Entitlement</th>
+                <th>Remaining Balance</th>
+                <th>Status</th>
+                ${isAdmin() ? `<th>Actions</th>` : ''}
+              </tr>
+            </thead>
+            <tbody>
+              ${state.employees.map(emp => {
+                const used = state.leaves.filter(l => l.employeeEmail && l.employeeEmail.toLowerCase() === emp.email.toLowerCase() && l.status === "approved").reduce((a, b) => a + Number(b.days || 0), 0);
+                return `
+                  <tr>
+                    <td><strong>${escapeHtml(emp.name)}</strong></td>
+                    <td>${escapeHtml(emp.email)}</td>
+                    <td><span class="badge badge-info" style="text-transform:none;">${escapeHtml(emp.designation || emp.type)}</span></td>
+                    <td>${fmtDate(emp.contractStartDate || emp.joinDate)}</td>
+                    <td>${fmtDate(emp.permanentDate || emp.joinDate)}</td>
+                    <td>15 days / year</td>
+                    <td><strong style="color:var(--teal-dark);font-size:1rem;">${emp.leaveBalance != null ? emp.leaveBalance : 15}</strong> days</td>
+                    <td><span class="badge ${emp.status === 'Active' ? 'badge-bg' : 'badge-error'}">${escapeHtml(emp.status)}</span></td>
+                    ${isAdmin() ? `
+                      <td>
+                        <button class="btn-sm" style="padding:4px 8px;font-size:0.75rem;" onclick="appAdjustLeaveBalance('${emp.id}')">Adjust Balance</button>
+                      </td>
+                    ` : ''}
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  `;
-  $q("#modals").appendChild(mod);
+    `;
+  } else if (leaveActiveTab === "my") {
+    container.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <h3>My Leave Applications History</h3>
+          <div class="card-actions">
+            <button class="btn-sm teal" onclick="appSwitchLeaveTab('file')">+ File New Leave</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead>
+              <tr>
+                <th>Filing Date</th>
+                <th>Leave Type</th>
+                <th>Inclusive Dates</th>
+                <th>Days</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${myLeaves.map(l => `
+                <tr>
+                  <td>${fmtDate(l.createdAt)}</td>
+                  <td><span class="badge badge-info" style="text-transform:none;">${escapeHtml(l.type)}</span></td>
+                  <td>${fmtDate(l.from)} — ${fmtDate(l.to)}</td>
+                  <td>${l.days} day(s)</td>
+                  <td>${escapeHtml(l.reason)}</td>
+                  <td>
+                    <span class="badge ${l.status === 'approved' ? 'badge-success' : l.status === 'pending' ? 'badge-warning' : 'badge-error'}">
+                      ${escapeHtml(l.status)}
+                    </span>
+                    ${l.disapprovalReason ? `<div style="font-size:0.72rem;color:var(--error);margin-top:2px;">Reason: ${escapeHtml(l.disapprovalReason)}</div>` : ''}
+                  </td>
+                  <td>
+                    <button class="btn-sm" style="padding:4px 8px;font-size:0.75rem;" onclick="appPrintOfficialLeaveForm('${l.id}')">Print Form</button>
+                  </td>
+                </tr>
+              `).join("") || `<tr><td colspan="7" style="text-align:center;color:var(--ink-dim);padding:24px;">You have not filed any leave applications yet.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
 }
 
-function appSubmitLeave() {
-  const empName = $q("#leaveEmpName").value.trim();
-  const empEmail = $q("#leaveEmpEmail").value.trim();
-  const type = $q("#leaveType").value;
-  const from = $q("#leaveFrom").value;
-  const to = $q("#leaveTo").value;
-  const days = Number($q("#leaveDays").value || 1);
-  const reason = $q("#leaveReason").value.trim();
-  if (!empName || !empEmail || !from || !to || !reason) { alert("Fill all required fields"); return; }
-  const d1 = new Date(from), d2 = new Date(to);
-  const calcDays = Math.max(1, Math.ceil((d2 - d1) / (1000*60*60*24)) + 1);
-  const l = {
+function appOnLeaveEmpSelect(empId) {
+  const emp = state.employees.find(e => e.id === empId);
+  if (!emp) return;
+  const des = $q("#sheetDesignation");
+  if (des) des.value = emp.designation || emp.type || "Staff";
+  const contact = $q("#sheetContact");
+  if (contact && emp.contactNumber) contact.value = emp.contactNumber;
+  const conf = $q("#sheetConformeName");
+  if (conf) conf.textContent = emp.name;
+}
+
+function appToggleLeaveOther(val) {
+  const wrap = $q("#sheetOtherTypeWrap");
+  if (wrap) wrap.style.display = val === "Others" ? "block" : "none";
+}
+
+function appComputeLeaveDays() {
+  const f = $q("#sheetDateFrom") ? $q("#sheetDateFrom").value : "";
+  const t = $q("#sheetDateTo") ? $q("#sheetDateTo").value : "";
+  if (!f || !t) return;
+  const d1 = new Date(f), d2 = new Date(t);
+  const diff = Math.max(1, Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+  const daysInp = $q("#sheetDays");
+  if (daysInp) daysInp.value = isNaN(diff) ? 1 : diff;
+}
+
+function appResetLeaveForm() {
+  const form = $q("#actiLeaveForm");
+  if (form) form.reset();
+}
+
+function appSubmitOfficialLeave() {
+  const empSelect = $q("#sheetEmpSelect");
+  const empId = empSelect ? empSelect.value : "";
+  const emp = state.employees.find(e => e.id === empId) || (currentUser ? state.employees.find(e => e.email.toLowerCase() === currentUser.email.toLowerCase()) : state.employees[0]);
+  const designation = ($q("#sheetDesignation") ? $q("#sheetDesignation").value.trim() : "") || "Admin Staff";
+  const contact = ($q("#sheetContact") ? $q("#sheetContact").value.trim() : "") || "N/A";
+  let leaveType = $q("#sheetLeaveType") ? $q("#sheetLeaveType").value : "Vacation Leave";
+  if (leaveType === "Others") {
+    const otherText = $q("#sheetOtherTypeText") ? $q("#sheetOtherTypeText").value.trim() : "";
+    leaveType = otherText ? "Others: " + otherText : "Others";
+  }
+  const from = $q("#sheetDateFrom") ? $q("#sheetDateFrom").value : "";
+  const to = $q("#sheetDateTo") ? $q("#sheetDateTo").value : "";
+  const days = Number($q("#sheetDays") ? $q("#sheetDays").value : 1);
+  const reason = $q("#sheetReason") ? $q("#sheetReason").value.trim() : "";
+
+  if (!from || !to || !reason) {
+    alert("Please fill out inclusive dates and the reason for leave.");
+    return;
+  }
+
+  const leaveEntry = {
     id: "l" + Date.now(),
-    employeeName: empName,
-    employeeEmail: empEmail,
-    type, from, to, days: isNaN(days) ? calcDays : days, reason,
-    status: "pending", createdAt: nowIso(), approvedBy: ""
+    employeeName: emp ? emp.name : "Employee",
+    employeeEmail: emp ? emp.email : (currentUser ? currentUser.email : "user@office.local"),
+    designation,
+    contactNumber: contact,
+    type: leaveType,
+    from,
+    to,
+    days: isNaN(days) ? 1 : days,
+    reason,
+    status: "pending",
+    disapprovalReason: "",
+    recommendedBy: "ANGELINA A. AQUINO",
+    approvedBy: "PATRICIA FAE C. RAMEL, CPA",
+    createdAt: nowIso()
   };
-  state.leaves.unshift(l);
-  audit("leave_filed", `${type} ${from} to ${to}`, `${l.days} day(s) by ${empName}`);
+
+  state.leaves.unshift(leaveEntry);
+  audit("leave_filed", `${leaveType} (${leaveEntry.days} days)`, `Filed by ${leaveEntry.employeeName}`);
+  notif(currentUser ? currentUser.id : "all", `Leave filed by ${leaveEntry.employeeName}: ${leaveType}`, "leave");
   persist();
-  const mod = $q(".modal-overlay");
-  if (mod) mod.remove();
+
+  alert(`Leave application filed successfully for ${leaveEntry.employeeName} (${leaveEntry.days} day(s)).`);
+  leaveActiveTab = "approval";
   renderLeave($q("#appContent"));
-  notif(currentUser ? currentUser.id : "all", `Leave filed: ${type} (${l.days} day(s))`, "leave");
 }
 
 function appLeaveAction(id, status) {
   const l = state.leaves.find(x => x.id === id);
   if (!l) return;
   l.status = status;
-  l.approvedBy = currentUser ? currentUser.email : ADMIN_EMAIL;
+  l.approvedBy = currentUser ? (currentUser.name || currentUser.email) : "CHAMIE D.";
   if (status === "approved") {
     const emp = state.employees.find(e => e.email.toLowerCase() === (l.employeeEmail || "").toLowerCase());
-    if (emp) emp.leaveBalance = Math.max(0, (emp.leaveBalance || 15) - l.days);
+    if (emp) emp.leaveBalance = Math.max(0, (emp.leaveBalance || 15) - Number(l.days || 1));
   }
   audit("leave_" + status, l.id, `${l.type} for ${l.employeeName}`);
   persist();
-  renderLeave($q("#appContent"));
+  renderLeaveTabBody();
   notif(currentUser ? currentUser.id : "all", `Leave for ${l.employeeName} was ${status}.`, "leave");
+}
+
+function appDisapproveLeaveModal(id) {
+  const l = state.leaves.find(x => x.id === id);
+  if (!l) return;
+  const reason = prompt(`Enter reason for disapproving ${l.employeeName}'s leave request:`, "Schedule conflict / Staff coverage");
+  if (reason === null) return;
+  l.status = "disapproved";
+  l.disapprovalReason = reason || "Not specified";
+  l.approvedBy = currentUser ? (currentUser.name || currentUser.email) : "CHAMIE D.";
+  audit("leave_disapproved", l.id, `Disapproved: ${reason}`);
+  persist();
+  renderLeaveTabBody();
+  notif(currentUser ? currentUser.id : "all", `Leave for ${l.employeeName} was disapproved.`, "leave");
+}
+
+function appAdjustLeaveBalance(empId) {
+  const emp = state.employees.find(e => e.id === empId);
+  if (!emp) return;
+  const newBal = prompt(`Adjust remaining leave balance for ${emp.name} (currently ${emp.leaveBalance || 15} days):`, emp.leaveBalance != null ? emp.leaveBalance : 15);
+  if (newBal === null) return;
+  const num = Number(newBal);
+  if (isNaN(num) || num < 0) { alert("Enter a valid number"); return; }
+  emp.leaveBalance = num;
+  audit("leave_balance_adjusted", emp.email, `Set to ${num} days`);
+  persist();
+  renderLeaveTabBody();
 }
 
 function appPrintLeave() {
   const win = window.open("", "_blank");
   if (!win) { alert("Please allow popups to print."); return; }
-  const leaves = state.leaves.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  const rows = leaves.map(l => {
-    const emp = state.employees.find(e => e.email.toLowerCase() === (l.employeeEmail || "").toLowerCase());
-    return `<tr>
-      <td>${escapeHtml(l.employeeName)}</td>
-      <td>${escapeHtml(l.employeeEmail)}</td>
-      <td>${escapeHtml(emp ? emp.type : "—")}</td>
-      <td>${fmtDate(emp ? (emp.permanentDate || emp.joinDate) : "")}</td>
-      <td>${fmtDate(l.from)}</td>
-      <td>${fmtDate(l.to)}</td>
-      <td>${l.days}</td>
-      <td>${escapeHtml(l.reason)}</td>
-      <td><span style="text-transform:uppercase;font-weight:700;color:${l.status==='approved'?'#059669':l.status==='rejected'?'#dc2626':'#d97706'}">${escapeHtml(l.status)}</span></td>
-      <td>${fmtDate(l.createdAt)}</td>
-      <td>${escapeHtml(l.approvedBy || "—")}</td>
-    </tr>`;
-  }).join("");
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Leave Report — ACTI Control Center</title>
+<title>Leave Register Summary — ACTI Control Center</title>
 <style>
-  body { font-family: 'Poppins', system-ui, sans-serif; font-size: 12px; color: #111; padding: 20px; }
-  h1 { color: #0f766e; font-size: 20px; margin-bottom: 4px; }
-  .sub { color: #6b7280; font-size: 12px; margin-bottom: 16px; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-  th, td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: left; font-size: 11px; }
-  th { background: #0f766e; color: #fff; }
-  .footer { margin-top: 20px; font-size: 10px; color: #6b7280; border-top: 1px solid #d1d5db; padding-top: 8px; }
+  body { font-family: 'Poppins', Arial, sans-serif; font-size: 11px; padding: 25px; color: #1e293b; max-width: 820px; margin: 0 auto; background: #fff; }
+  .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f766e; padding-bottom: 12px; margin-bottom: 16px; }
+  .header h1 { margin: 0; font-size: 14px; color: #0f766e; font-weight: 700; }
+  .header p { margin: 2px 0 0; font-size: 10px; color: #64748b; }
+  table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+  th, td { padding: 8px 10px; border: 1px solid #cbd5e1; font-size: 10px; text-align: left; }
+  th { background: #f8fafc; font-weight: 600; color: #475569; }
   @media print { body { padding: 0; } }
 </style>
 </head>
 <body>
-  <h1>ACTI Control Center — Leave Report</h1>
-  <div class="sub">Generated ${new Date().toLocaleDateString("en-PH")} • Total: ${leaves.length} leave record(s)</div>
+  <div class="header">
+    <div>
+      <h1>ACCOUNTING CERTIFICATION AND TRAINING INSTITUTE, INC.</h1>
+      <p>2nd Floor Vicente Manlapaz Bldg., District 1, Cauayan City, Isabela</p>
+    </div>
+    <div>
+      <h2 style="margin:0;font-size:13px;color:#0f766e;">LEAVE REGISTER SUMMARY</h2>
+      <p style="margin:2px 0 0;font-size:10px;">Printed: ${new Date().toLocaleDateString('en-PH')}</p>
+    </div>
+  </div>
   <table>
     <thead>
       <tr>
-        <th>Employee</th><th>Email</th><th>Type</th><th>Start Date</th>
-        <th>From</th><th>To</th><th>Days</th><th>Reason</th>
-        <th>Status</th><th>Filed</th><th>Approved By</th>
+        <th>Date Filed</th>
+        <th>Employee Name</th>
+        <th>Designation</th>
+        <th>Leave Type</th>
+        <th>Inclusive Dates</th>
+        <th>Days</th>
+        <th>Reason</th>
+        <th>Status</th>
       </tr>
     </thead>
-    <tbody>${rows}</tbody>
+    <tbody>
+      ${state.leaves.map(l => `
+        <tr>
+          <td>${fmtDate(l.createdAt)}</td>
+          <td><strong>${escapeHtml(l.employeeName)}</strong></td>
+          <td>${escapeHtml(l.designation || 'Staff')}</td>
+          <td>${escapeHtml(l.type)}</td>
+          <td>${fmtDate(l.from)} — ${fmtDate(l.to)}</td>
+          <td>${l.days}</td>
+          <td>${escapeHtml(l.reason)}</td>
+          <td>${escapeHtml(l.status.toUpperCase())}</td>
+        </tr>
+      `).join('')}
+    </tbody>
   </table>
-  <div class="footer">ACTI Control Center • Printed on ${new Date().toLocaleString("en-PH")}</div>
   <script>window.print();</script>
 </body>
 </html>`;
   win.document.write(html);
   win.document.close();
+}
+
+function appPrintOfficialLeaveForm(id) {
+  const l = state.leaves.find(x => x.id === id) || state.leaves[0];
+  if (!l) { alert("Leave record not found"); return; }
+  const win = window.open("", "_blank");
+  if (!win) { alert("Please allow popups to print."); return; }
+
+  const isVacation = l.type.toLowerCase().includes("vacation");
+  const isSick = l.type.toLowerCase().includes("sick");
+  const isAcademic = l.type.toLowerCase().includes("academic");
+  const isOther = !isVacation && !isSick && !isAcademic;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Leave Application — ${escapeHtml(l.employeeName)}</title>
+<style>
+  body { font-family: 'Poppins', Arial, sans-serif; font-size: 11px; color: #111; padding: 25px; max-width: 820px; margin: 0 auto; background: #fff; }
+  .header { text-align: center; border-bottom: 2px solid #0f766e; padding-bottom: 8px; margin-bottom: 14px; }
+  .header h1 { font-size: 14px; color: #0f766e; margin: 0; font-weight: 700; letter-spacing: 0.5px; }
+  .header p { font-size: 10px; color: #555; margin: 2px 0 0; }
+  .sheet-title { text-align: center; font-size: 13px; font-weight: 700; letter-spacing: 1px; margin: 10px 0; background: #e0f2f1; padding: 5px; border-radius: 4px; color: #0f766e; }
+  table.meta-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+  table.meta-table td { padding: 6px 8px; border: 1px solid #ccc; font-size: 11px; }
+  table.meta-table td strong { color: #333; }
+  .section-head { font-weight: 700; color: #0f766e; font-size: 11px; text-transform: uppercase; margin: 12px 0 6px; border-left: 3px solid #0f766e; padding-left: 6px; }
+  .box { border: 1px solid #ccc; padding: 10px; margin-bottom: 12px; }
+  .checkbox-group { display: flex; gap: 20px; margin-bottom: 8px; flex-wrap: wrap; }
+  .checkbox-item { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; }
+  .check-box-square { width: 13px; height: 13px; border: 1.5px solid #333; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; }
+  table.sig-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  table.sig-table td { width: 50%; border: 1px solid #ccc; padding: 10px 14px; vertical-align: top; }
+  .sig-title { font-size: 10px; font-weight: bold; color: #555; text-transform: uppercase; margin-bottom: 25px; }
+  .sig-name { font-weight: bold; font-size: 11px; border-top: 1px dashed #777; padding-top: 4px; text-align: center; }
+  .sig-role { font-size: 10px; color: #666; text-align: center; }
+  .status-stamp { display: inline-block; padding: 3px 10px; border-radius: 12px; font-weight: bold; font-size: 10px; text-transform: uppercase; margin-top: 4px; }
+  .status-approved { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+  .status-disapproved { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+  .footer-note { font-size: 9px; color: #888; text-align: center; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 6px; }
+  @media print { body { padding: 0; } }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>ACCOUNTING CERTIFICATION AND TRAINING INSTITUTE, INC.</h1>
+    <p>2nd Floor Vicente Manlapaz Bldg., District 1, Cauayan City, Isabela</p>
+  </div>
+
+  <div class="sheet-title">APPLICATION FOR LEAVE</div>
+
+  <table class="meta-table">
+    <tr>
+      <td><strong>DATE OF FILING:</strong> ${fmtDate(l.createdAt)}</td>
+      <td><strong>NAME:</strong> ${escapeHtml(l.employeeName)}</td>
+    </tr>
+    <tr>
+      <td><strong>DESIGNATION:</strong> ${escapeHtml(l.designation || 'Admin Staff')}</td>
+      <td><strong>CONTACT NUMBER:</strong> ${escapeHtml(l.contactNumber || 'N/A')}</td>
+    </tr>
+  </table>
+
+  <div class="section-head">DETAILS OF APPLICATION</div>
+  <div class="box">
+    <div style="margin-bottom:8px;"><strong>TYPE OF LEAVE APPLIED FOR:</strong></div>
+    <div class="checkbox-group">
+      <div class="checkbox-item"><span class="check-box-square">${isVacation ? '✓' : ''}</span> Vacation Leave</div>
+      <div class="checkbox-item"><span class="check-box-square">${isSick ? '✓' : ''}</span> Sick Leave</div>
+      <div class="checkbox-item"><span class="check-box-square">${isAcademic ? '✓' : ''}</span> Academic Leave</div>
+      <div class="checkbox-item"><span class="check-box-square">${isOther ? '✓' : ''}</span> Others: ${isOther ? escapeHtml(l.type) : '_______________'}</div>
+    </div>
+    <div style="margin-top:10px;line-height:1.8;">
+      <div><strong>INCLUSIVE DATES:</strong> ${fmtDate(l.from)} to ${fmtDate(l.to)}</div>
+      <div><strong>NUMBER OF DAYS:</strong> ${l.days} day(s)</div>
+      <div><strong>REASON FOR LEAVE:</strong> ${escapeHtml(l.reason)}</div>
+    </div>
+  </div>
+
+  <table class="sig-table">
+    <tr>
+      <td>
+        <div class="sig-title">RECOMMENDED BY:</div>
+        <div style="margin-bottom:12px;">
+          <span class="status-stamp ${l.status === 'approved' ? 'status-approved' : l.status === 'disapproved' ? 'status-disapproved' : ''}">
+            ${l.status === 'approved' ? '✓ APPROVED' : l.status === 'disapproved' ? '✗ DISAPPROVED' : 'PENDING RECOMMENDATION'}
+          </span>
+          ${l.disapprovalReason ? `<div style="font-size:10px;margin-top:4px;">Reason: ${escapeHtml(l.disapprovalReason)}</div>` : ''}
+        </div>
+        <div class="sig-name">ANGELINA A. AQUINO</div>
+        <div class="sig-role">Supervisor</div>
+      </td>
+      <td>
+        <div class="sig-title">APPROVED BY:</div>
+        <div style="margin-bottom:12px;">
+          <span class="status-stamp ${l.status === 'approved' ? 'status-approved' : l.status === 'disapproved' ? 'status-disapproved' : ''}">
+            ${l.status === 'approved' ? '✓ APPROVED' : l.status === 'disapproved' ? '✗ DISAPPROVED' : 'PENDING APPROVAL'}
+          </span>
+        </div>
+        <div class="sig-name">PATRICIA FAE C. RAMEL, CPA</div>
+        <div class="sig-role">Manager</div>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <div class="sig-title">CONFORME BY:</div>
+        <div class="sig-name">${escapeHtml(l.employeeName)}</div>
+        <div class="sig-role">Employee's Name and Signature</div>
+      </td>
+      <td>
+        <div class="sig-title">NOTED BY:</div>
+        <div class="sig-name">CHAMIE D.</div>
+        <div class="sig-role">Authorized Signatory</div>
+      </td>
+    </tr>
+  </table>
+
+  <div class="footer-note">
+    Official Office Management Record • Control Center • Printed on ${new Date().toLocaleString('en-PH')}
+  </div>
+  <script>window.print();</script>
+</body>
+</html>`;
+  win.document.write(html);
+  win.document.close();
+}
+
+/* ==========================================================================
+   MODULE: STUDENT INVOICES & TUITION REFUNDS
+   ========================================================================== */
+function renderInvoice(el) {
+  const reqCount = (state.studentRequests || []).length;
+  const pendingReqCount = (state.studentRequests || []).filter(r => r.status === "pending").length;
+
+  el.innerHTML = `
+    <div class="module-header">
+      <div>
+        <h2>Student Invoices &amp; Tuition Refunds</h2>
+        <div class="sub">Request Official Receipts/Invoices, submit Tuition Refund claims, and upload Proof of Payment (POP).</div>
+      </div>
+      <div class="card-actions">
+        <button class="btn-sm teal" onclick="appSwitchInvoiceTab('portal')">+ New Student Request</button>
+        <button class="btn-sm" onclick="appNavigateBack()">Back</button>
+      </div>
+    </div>
+
+    <!-- Multi-Tabs -->
+    <div class="module-tabs">
+      <button class="tab-btn ${invoiceActiveTab === 'portal' ? 'active' : ''}" onclick="appSwitchInvoiceTab('portal')">
+        <span>🎓 Student Request Portal</span>
+      </button>
+      <button class="tab-btn ${invoiceActiveTab === 'requests' ? 'active' : ''}" onclick="appSwitchInvoiceTab('requests')">
+        <span>📂 Manage Student Requests &amp; POP</span>
+        ${pendingReqCount > 0 ? `<span class="badge badge-warning" style="padding:2px 6px;font-size:0.7rem;">${pendingReqCount}</span>` : ''}
+      </button>
+      <button class="tab-btn ${invoiceActiveTab === 'register' ? 'active' : ''}" onclick="appSwitchInvoiceTab('register')">
+        <span>📑 Issued Invoices &amp; OR Register (${state.invoices.length})</span>
+      </button>
+    </div>
+
+    <div id="invoiceTabContent"></div>
+  `;
+
+  renderInvoiceTabBody();
+}
+
+function appSwitchInvoiceTab(tab) {
+  invoiceActiveTab = tab;
+  renderInvoice($q("#appContent"));
+}
+
+let popUploadDataUrl = "";
+let popUploadFileName = "";
+
+function renderInvoiceTabBody() {
+  const container = $q("#invoiceTabContent");
+  if (!container) return;
+
+  if (invoiceActiveTab === "portal") {
+    container.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <h3>Student Request Form (Invoice / OR or Tuition Refund)</h3>
+        </div>
+        <div class="card-body">
+          <form id="studentReqForm" onsubmit="event.preventDefault();appSubmitStudentRequest();">
+            <div style="display:flex;gap:20px;margin-bottom:18px;padding:12px 16px;background:#f8fafc;border-radius:8px;border:1px solid var(--line);">
+              <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
+                <input type="radio" name="reqType" value="invoice" checked onchange="appToggleStudentReqType(this.value)">
+                Request Official Invoice / Receipt
+              </label>
+              <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
+                <input type="radio" name="reqType" value="refund" onchange="appToggleStudentReqType(this.value)">
+                Request Tuition Refund
+              </label>
+            </div>
+
+            <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+              <div class="field">
+                <label>Student Full Name</label>
+                <input type="text" id="srStudentName" placeholder="e.g. Juan Dela Cruz" required>
+              </div>
+              <div class="field">
+                <label>Student ID / Reg #</label>
+                <input type="text" id="srStudentId" placeholder="e.g. ACTI-2026-088" required>
+              </div>
+              <div class="field">
+                <label>Contact Number</label>
+                <input type="text" id="srContact" placeholder="09xxxxxxxxx" required>
+              </div>
+              <div class="field">
+                <label>Email Address</label>
+                <input type="email" id="srEmail" placeholder="student@gmail.com" required>
+              </div>
+              <div class="field" style="grid-column:1/-1;">
+                <label>Course / Program Enrolled</label>
+                <select id="srProgram">
+                  <option>Certified Accounting Technician (CAT)</option>
+                  <option>Bookkeeping NC III Training</option>
+                  <option>CPA Board Review Program</option>
+                  <option>Tax Accounting &amp; Compliance Seminar</option>
+                  <option>QuickBooks / Xero Automation Course</option>
+                  <option>Corporate Financial Reporting</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="acti-sheet-section-title" style="margin-top:20px;">Payment Details &amp; Proof of Payment (POP)</div>
+            <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+              <div class="field">
+                <label>Date Paid</label>
+                <input type="date" id="srDatePaid" value="${new Date().toISOString().split('T')[0]}" required>
+              </div>
+              <div class="field">
+                <label>Payment Method</label>
+                <select id="srPaymentMethod">
+                  <option>GCash</option>
+                  <option>BDO Online Banking</option>
+                  <option>BPI Online / QR</option>
+                  <option>Maya</option>
+                  <option>Cash (Over-the-Counter)</option>
+                  <option>Direct Bank Deposit</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Payment Reference / Transaction #</label>
+                <input type="text" id="srRefNum" placeholder="e.g. GC-982144512" required>
+              </div>
+              <div class="field">
+                <label>Amount Paid (₱)</label>
+                <input type="number" id="srAmount" step="0.01" min="1" placeholder="0.00" required>
+              </div>
+            </div>
+
+            <!-- Refund Section (Conditional) -->
+            <div id="refundDetailsSection" style="display:none;margin-top:16px;padding:14px;background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;">
+              <div style="font-weight:600;color:#9f1239;margin-bottom:10px;">Tuition Refund Details</div>
+              <div class="form-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+                <div class="field">
+                  <label>Amount Requested for Refund (₱)</label>
+                  <input type="number" id="srRefundAmount" step="0.01" min="1" placeholder="0.00">
+                </div>
+                <div class="field" style="grid-column:1/-1;">
+                  <label>Reason for Refund</label>
+                  <input type="text" id="srRefundReason" placeholder="e.g. Schedule conflict with school/work, accidental double payment">
+                </div>
+                <div class="field" style="grid-column:1/-1;">
+                  <label>Disbursement Account (GCash / Bank Account Name &amp; Number)</label>
+                  <input type="text" id="srDisbursementAccount" placeholder="e.g. BDO Savings 001234567890 (Juan Dela Cruz) or GCash 0917xxxxxxx">
+                </div>
+              </div>
+            </div>
+
+            <!-- Proof of Payment Upload Box -->
+            <div class="field" style="margin-top:16px;">
+              <label>Upload Proof of Payment (POP Receipt / Screenshot / Deposit Slip)</label>
+              <div class="pop-upload-box" onclick="$q('#srPopFile').click()">
+                <svg viewBox="0 0 24 24" width="32" height="32" style="color:var(--teal);margin:0 auto 6px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div style="font-weight:600;color:var(--ink);">Click to upload receipt image or PDF</div>
+                <div class="hint">JPG, PNG, or PDF up to 10MB</div>
+                <div id="popFileNameLabel" style="font-weight:600;color:var(--teal-dark);margin-top:8px;"></div>
+                <img id="popPreviewThumb" class="pop-preview-img" style="display:none;" alt="Proof of Payment Preview">
+              </div>
+              <input type="file" id="srPopFile" accept="image/*,.pdf" style="display:none;" onchange="appHandlePOPSelect(this)">
+            </div>
+
+            <div class="field" style="margin-top:14px;">
+              <label>Special Notes / Instructions (Optional)</label>
+              <input type="text" id="srNotes" placeholder="e.g. Need company TIN included on Official Receipt">
+            </div>
+
+            <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:12px;">
+              <button type="submit" class="btn-primary" style="padding:10px 24px;">Submit Request &amp; Proof of Payment</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+  } else if (invoiceActiveTab === "requests") {
+    container.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <h3>Student Inquiries, Invoice &amp; Refund Requests</h3>
+          <div class="card-actions">
+            <button class="btn-sm" onclick="renderInvoiceTabBody()">Refresh</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Student</th>
+                <th>Course / Program</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Method &amp; Ref</th>
+                <th>Proof (POP)</th>
+                <th>Status</th>
+                <th>Admin Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(state.studentRequests || []).map(r => `
+                <tr>
+                  <td>${fmtDate(r.createdAt || r.datePaid)}</td>
+                  <td><strong>${escapeHtml(r.studentName)}</strong><div style="font-size:0.75rem;color:#64748b;">${escapeHtml(r.studentId || '')} • ${escapeHtml(r.contactNumber || '')}</div></td>
+                  <td>${escapeHtml(r.program)}</td>
+                  <td><span class="badge ${r.type === 'refund' ? 'badge-error' : 'badge-info'}">${escapeHtml(r.type.toUpperCase())}</span></td>
+                  <td><strong>${fmtMoney(r.amount)}</strong></td>
+                  <td>${escapeHtml(r.paymentMethod)}<div style="font-size:0.72rem;color:#64748b;">${escapeHtml(r.refNumber)}</div></td>
+                  <td>
+                    ${r.popUrl ? `
+                      <button class="btn-sm" style="padding:4px 8px;font-size:0.75rem;" onclick="appViewPOP('${r.id}')">View POP</button>
+                    ` : `<span style="font-size:0.75rem;color:#94a3b8;">${escapeHtml(r.popName || 'None')}</span>`}
+                  </td>
+                  <td><span class="badge ${r.status === 'verified' ? 'badge-success' : r.status === 'pending' ? 'badge-warning' : 'badge-error'}">${escapeHtml(r.status)}</span></td>
+                  <td style="display:flex;gap:6px;flex-wrap:wrap;">
+                    ${r.status === 'pending' ? `
+                      <button class="btn-sm teal" style="padding:4px 8px;font-size:0.75rem;" onclick="appApproveStudentReq('${r.id}')">${r.type === 'refund' ? 'Approve Refund' : 'Issue Invoice'}</button>
+                      <button class="btn-sm" style="padding:4px 8px;font-size:0.75rem;color:var(--error);" onclick="appRejectStudentReq('${r.id}')">Reject</button>
+                    ` : `
+                      <span style="font-size:0.75rem;color:#64748b;">${r.issuedInvoiceRef || 'Completed'}</span>
+                    `}
+                  </td>
+                </tr>
+              `).join("") || `<tr><td colspan="9" style="text-align:center;color:var(--ink-dim);padding:24px;">No student requests filed yet.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } else if (invoiceActiveTab === "register") {
+    container.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <h3>Official Invoices &amp; Receipts Register</h3>
+          <div class="card-actions">
+            <button class="btn-sm teal" onclick="appOpenInvoiceModal()">+ Manual Invoice</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead>
+              <tr>
+                <th>Invoice Ref</th>
+                <th>Student / Client</th>
+                <th>Date</th>
+                <th>Due</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${state.invoices.map(i => `
+                <tr>
+                  <td><strong>${escapeHtml(i.ref)}</strong></td>
+                  <td>${escapeHtml(i.client)}</td>
+                  <td>${fmtDate(i.date)}</td>
+                  <td>${fmtDate(i.due)}</td>
+                  <td><strong>${fmtMoney(i.amount)}</strong></td>
+                  <td><span class="badge ${i.status === 'paid' ? 'badge-success' : 'badge-warning'}">${escapeHtml(i.status)}</span></td>
+                  <td style="display:flex;gap:6px;">
+                    <button class="btn-sm teal" style="padding:4px 8px;font-size:0.75rem;" onclick="appPrintStudentInvoice('${i.id}')">Print OR / Invoice</button>
+                    ${i.status !== 'paid' ? `<button class="btn-sm" style="padding:4px 8px;font-size:0.75rem;" onclick="appInvoiceStatus('${i.id}','paid')">Mark Paid</button>` : ''}
+                    <button class="btn-sm" style="padding:4px 8px;font-size:0.75rem;color:var(--error);" onclick="appDeleteInvoice('${i.id}')">Delete</button>
+                  </td>
+                </tr>
+              `).join("") || `<tr><td colspan="7" style="text-align:center;color:var(--ink-dim);padding:24px;">No invoices issued yet.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function appToggleStudentReqType(val) {
+  const refundBox = $q("#refundDetailsSection");
+  if (refundBox) refundBox.style.display = val === "refund" ? "block" : "none";
+}
+
+function appHandlePOPSelect(input) {
+  const file = input ? input.files[0] : null;
+  if (!file) return;
+  popUploadFileName = file.name;
+  const label = $q("#popFileNameLabel");
+  if (label) label.textContent = "Selected: " + file.name;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    popUploadDataUrl = e.target.result;
+    const thumb = $q("#popPreviewThumb");
+    if (thumb && file.type.startsWith("image/")) {
+      thumb.src = popUploadDataUrl;
+      thumb.style.display = "block";
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function appSubmitStudentRequest() {
+  const reqTypeRadio = $q('input[name="reqType"]:checked');
+  const type = reqTypeRadio ? reqTypeRadio.value : "invoice";
+  const studentName = $q("#srStudentName") ? $q("#srStudentName").value.trim() : "";
+  const studentId = $q("#srStudentId") ? $q("#srStudentId").value.trim() : "";
+  const contact = $q("#srContact") ? $q("#srContact").value.trim() : "";
+  const email = $q("#srEmail") ? $q("#srEmail").value.trim() : "";
+  const program = $q("#srProgram") ? $q("#srProgram").value : "";
+  const datePaid = $q("#srDatePaid") ? $q("#srDatePaid").value : "";
+  const paymentMethod = $q("#srPaymentMethod") ? $q("#srPaymentMethod").value : "GCash";
+  const refNumber = $q("#srRefNum") ? $q("#srRefNum").value.trim() : "";
+  const amount = Number($q("#srAmount") ? $q("#srAmount").value : 0);
+  const notes = $q("#srNotes") ? $q("#srNotes").value.trim() : "";
+
+  if (!studentName || !studentId || !refNumber || isNaN(amount) || amount <= 0) {
+    alert("Please fill in student name, student ID, reference number, and a valid amount.");
+    return;
+  }
+
+  const newReq = {
+    id: "sr" + Date.now(),
+    type,
+    studentName,
+    studentId,
+    contactNumber: contact,
+    email,
+    program,
+    datePaid,
+    paymentMethod,
+    refNumber,
+    amount,
+    popUrl: popUploadDataUrl,
+    popName: popUploadFileName || "proof_of_payment.jpg",
+    notes,
+    refundAmount: type === "refund" ? Number($q("#srRefundAmount")?.value || amount) : 0,
+    refundReason: type === "refund" ? ($q("#srRefundReason")?.value.trim() || "Course adjustment") : "",
+    disbursementAccount: type === "refund" ? ($q("#srDisbursementAccount")?.value.trim() || "N/A") : "",
+    status: "pending",
+    createdAt: nowIso()
+  };
+
+  state.studentRequests.unshift(newReq);
+  audit("student_request_submitted", `${type.toUpperCase()} for ${studentName}`, `${fmtMoney(amount)} via ${paymentMethod} (Ref: ${refNumber})`);
+  notif(currentUser ? currentUser.id : "all", `New student ${type} request: ${studentName} (${fmtMoney(amount)})`, "invoice");
+  persist();
+
+  popUploadDataUrl = "";
+  popUploadFileName = "";
+
+  alert(`Student ${type} request submitted successfully with Proof of Payment!`);
+  invoiceActiveTab = "requests";
+  renderInvoice($q("#appContent"));
+}
+
+function appViewPOP(id) {
+  const r = (state.studentRequests || []).find(x => x.id === id);
+  if (!r || !r.popUrl) { alert("No Proof of Payment image attached."); return; }
+  const mod = document.createElement("div");
+  mod.className = "modal-overlay";
+  mod.innerHTML = `
+    <div class="modal" style="max-width:680px;text-align:center;">
+      <div class="modal-header">
+        <h3>Proof of Payment — ${escapeHtml(r.studentName)}</h3>
+        <button class="btn-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:20px;">
+        <div style="font-size:0.85rem;color:#64748b;margin-bottom:12px;">
+          ${escapeHtml(r.paymentMethod)} • Ref: <strong>${escapeHtml(r.refNumber)}</strong> • Amount: <strong>${fmtMoney(r.amount)}</strong>
+        </div>
+        <img src="${r.popUrl}" style="max-width:100%;max-height:480px;border-radius:8px;border:1px solid #cbd5e1;box-shadow:0 4px 12px rgba(0,0,0,0.08);" alt="Proof of Payment">
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sm teal" onclick="this.closest('.modal-overlay').remove()">Close</button>
+      </div>
+    </div>
+  `;
+  $q("#modals").appendChild(mod);
+}
+
+function appApproveStudentReq(id) {
+  const r = (state.studentRequests || []).find(x => x.id === id);
+  if (!r) return;
+  if (r.type === "refund") {
+    if (!confirm(`Approve tuition refund of ${fmtMoney(r.refundAmount || r.amount)} to ${r.studentName}?`)) return;
+    r.status = "verified";
+    state.cashflow.unshift({
+      id: "c" + Date.now(),
+      date: new Date().toISOString().split("T")[0],
+      type: "out",
+      category: "Tuition Refund",
+      amount: Number(r.refundAmount || r.amount),
+      ref: r.refNumber,
+      note: `Tuition refund for ${r.studentName} (${r.program})`
+    });
+    audit("student_refund_approved", r.studentName, `${fmtMoney(r.refundAmount || r.amount)} refunded`);
+    persist();
+    renderInvoiceTabBody();
+    alert("Refund approved and recorded in Cash Flow outflows.");
+  } else {
+    // Generate Invoice / OR
+    const invRef = "INV-" + new Date().getFullYear() + "-" + String(state.invoices.length + 1).padStart(3, '0');
+    r.status = "verified";
+    r.issuedInvoiceRef = invRef;
+    const inv = {
+      id: "inv" + Date.now(),
+      ref: invRef,
+      client: r.studentName + " (" + r.program + ")",
+      studentId: r.studentId,
+      date: r.datePaid || new Date().toISOString().split("T")[0],
+      due: r.datePaid || new Date().toISOString().split("T")[0],
+      amount: Number(r.amount),
+      status: "paid",
+      paymentMethod: r.paymentMethod,
+      refNumber: r.refNumber,
+      createdAt: nowIso()
+    };
+    state.invoices.unshift(inv);
+    audit("student_invoice_issued", invRef, `Issued for ${r.studentName} (${fmtMoney(r.amount)})`);
+    persist();
+    renderInvoiceTabBody();
+    alert(`Official Invoice ${invRef} issued successfully! You can now print the Official Receipt.`);
+  }
+}
+
+function appRejectStudentReq(id) {
+  const r = (state.studentRequests || []).find(x => x.id === id);
+  if (!r) return;
+  const reason = prompt("Enter reason for rejecting request:", "Invalid Proof of Payment / Transaction not found");
+  if (reason === null) return;
+  r.status = "rejected";
+  audit("student_request_rejected", r.studentName, reason);
+  persist();
+  renderInvoiceTabBody();
+}
+
+function appPrintStudentInvoice(id) {
+  const inv = state.invoices.find(x => x.id === id);
+  if (!inv) return;
+  const win = window.open("", "_blank");
+  if (!win) { alert("Please allow popups to print."); return; }
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Official Invoice — ${escapeHtml(inv.ref)}</title>
+<style>
+  body { font-family: 'Poppins', Arial, sans-serif; font-size: 11px; padding: 30px; color: #1e293b; max-width: 800px; margin: 0 auto; background: #fff; }
+  .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0f766e; padding-bottom: 12px; margin-bottom: 20px; }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-left img { width: 56px; height: 56px; border-radius: 50%; }
+  .header-left h1 { margin: 0; font-size: 14px; color: #0f766e; font-weight: 700; }
+  .header-left p { margin: 2px 0 0; font-size: 10px; color: #64748b; }
+  .ref-box { text-align: right; }
+  .ref-box h2 { margin: 0; font-size: 15px; color: #0f766e; font-weight: 700; }
+  table.items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+  table.items-table th, table.items-table td { padding: 10px 12px; border: 1px solid #cbd5e1; font-size: 11px; text-align: left; }
+  table.items-table th { background: #f8fafc; font-weight: 600; color: #475569; }
+  .total-row { font-size: 14px; font-weight: 700; color: #0f766e; }
+  .sig-row { display: flex; justify-content: space-between; margin-top: 50px; }
+  .sig-col { text-align: center; width: 220px; }
+  .sig-line { border-top: 1.5px solid #94a3b8; padding-top: 4px; font-weight: 600; font-size: 11px; }
+  @media print { body { padding: 0; } }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <img src="assets/acti-logo.png" alt="ACTI Seal">
+      <div>
+        <h1>ACCOUNTING CERTIFICATION AND TRAINING INSTITUTE, INC.</h1>
+        <p>2nd Floor Vicente Manlapaz Bldg., District 1, Cauayan City, Isabela</p>
+      </div>
+    </div>
+    <div class="ref-box">
+      <h2>OFFICIAL RECEIPT / INVOICE</h2>
+      <p>Ref: <strong>${escapeHtml(inv.ref)}</strong><br>Date: ${fmtDate(inv.date)}</p>
+    </div>
+  </div>
+
+  <div style="margin-bottom:16px;line-height:1.6;">
+    <strong>BILLED TO / STUDENT:</strong><br>
+    ${escapeHtml(inv.client)}<br>
+    ${inv.studentId ? `Student ID: ${escapeHtml(inv.studentId)}<br>` : ''}
+    Payment Status: <span style="color:#059669;font-weight:700;">PAID IN FULL</span>
+  </div>
+
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th>Description / Course</th>
+        <th>Payment Ref #</th>
+        <th>Payment Method</th>
+        <th>Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>${escapeHtml(inv.client)}</td>
+        <td>${escapeHtml(inv.refNumber || 'Direct Payment')}</td>
+        <td>${escapeHtml(inv.paymentMethod || 'Cash / Online')}</td>
+        <td class="total-row">${fmtMoney(inv.amount)}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="sig-row">
+    <div class="sig-col">
+      <div style="height:40px;"></div>
+      <div class="sig-line">Student / Payer Conforme</div>
+    </div>
+    <div class="sig-col">
+      <div style="height:40px;"></div>
+      <div class="sig-line">Authorized Signatory / Finance Officer</div>
+      <div style="font-size:10px;color:#64748b;">Accounting Certification &amp; Training Institute</div>
+    </div>
+  </div>
+  <script>window.print();</script>
+</body>
+</html>`;
+  win.document.write(html);
+  win.document.close();
+}
+
+function appOpenInvoiceModal() {
+  const mod = document.createElement("div");
+  mod.className = "modal-overlay";
+  mod.innerHTML = `
+    <div class="modal" style="max-width:540px;">
+      <div class="modal-header"><h3>New Invoice</h3><button class="btn-close" onclick="this.closest('.modal-overlay').remove()">&times;</button></div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="field">
+            <label>Invoice Ref</label>
+            <input type="text" id="invRef" value="INV-${new Date().getFullYear()}-${String(state.invoices.length+1).padStart(3,'0')}">
+          </div>
+          <div class="field">
+            <label>Client / Student Name</label>
+            <input type="text" id="invClient" placeholder="e.g. ABC Corporation or Student Name">
+          </div>
+          <div class="field">
+            <label>Date</label>
+            <input type="date" id="invDate" value="${new Date().toISOString().split('T')[0]}">
+          </div>
+          <div class="field">
+            <label>Due Date</label>
+            <input type="date" id="invDue" value="${new Date(Date.now() + 15*86400000).toISOString().split('T')[0]}">
+          </div>
+          <div class="field">
+            <label>Amount (₱)</label>
+            <input type="number" id="invAmount" step="0.01" min="0" placeholder="0.00">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sm" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+        <button class="btn-sm teal" onclick="appSaveInvoice()">Save Invoice</button>
+      </div>
+    </div>
+  `;
+  $q("#modals").appendChild(mod);
+}
+
+function appSaveInvoice() {
+  const ref = $q("#invRef").value.trim();
+  const client = $q("#invClient").value.trim();
+  const date = $q("#invDate").value;
+  const due = $q("#invDue").value;
+  const amount = $q("#invAmount").value;
+  if (!ref || !client || !date || !amount) { alert("Fill all required fields"); return; }
+  state.invoices.unshift({
+    id: "inv" + Date.now(), ref, client, date, due, amount: Number(amount),
+    status: "pending", createdAt: nowIso()
+  });
+  audit("invoice_created", ref, `₱${amount} for ${client}`);
+  persist();
+  const mod = $q(".modal-overlay");
+  if (mod) mod.remove();
+  renderInvoice($q("#appContent"));
+  notif(currentUser ? currentUser.id : "all", `Invoice ${ref} created`, "invoice");
+}
+
+function appInvoiceStatus(id, status) {
+  const i = state.invoices.find(x => x.id === id);
+  if (!i) return;
+  i.status = status;
+  audit("invoice_" + status, i.ref, `Status changed to ${status}`);
+  persist();
+  renderInvoiceTabBody();
+}
+
+function appDeleteInvoice(id) {
+  if (!confirm("Delete this invoice?")) return;
+  state.invoices = state.invoices.filter(x => x.id !== id);
+  audit("invoice_deleted", id, "Invoice deleted");
+  persist();
+  renderInvoiceTabBody();
+}
+
+/* ==========================================================================
+   MODULE: STAFF DAILY TASKS (PER-EMPLOYEE BOXES & DASHBOARD)
+   ========================================================================== */
+function renderTasks(el) {
+  const myEmp = currentUser ? state.employees.find(e => e.email.toLowerCase() === currentUser.email.toLowerCase()) : null;
+
+  el.innerHTML = `
+    <div class="module-header">
+      <div>
+        <h2>Staff Daily Task Monitoring</h2>
+        <div class="sub">Individual employee task boxes, daily goals, and progress tracking.</div>
+      </div>
+      <div class="card-actions">
+        <button class="btn-sm teal" onclick="appOpenTaskModal()">+ Add Task</button>
+        <button class="btn-sm" onclick="appNavigateBack()">Back</button>
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="module-tabs">
+      <button class="tab-btn ${taskActiveFilter === 'boxes' ? 'active' : ''}" onclick="appSwitchTaskFilter('boxes')">
+        <span>🏢 Per-Employee Boxes (Super Admin View)</span>
+      </button>
+      <button class="tab-btn ${taskActiveFilter === 'my' ? 'active' : ''}" onclick="appSwitchTaskFilter('my')">
+        <span>👤 My Daily Tasks (${myEmp ? state.tasks.filter(t => t.employeeId === myEmp.id).length : 0})</span>
+      </button>
+      <button class="tab-btn ${taskActiveFilter === 'all' ? 'active' : ''}" onclick="appSwitchTaskFilter('all')">
+        <span>📋 All Tasks List (${state.tasks.length})</span>
+      </button>
+    </div>
+
+    <div id="taskModuleContent"></div>
+  `;
+
+  renderTasksContent();
+}
+
+function appSwitchTaskFilter(filter) {
+  taskActiveFilter = filter;
+  renderTasks($q("#appContent"));
+}
+
+function renderTasksContent() {
+  const container = $q("#taskModuleContent");
+  if (!container) return;
+
+  const myEmp = currentUser ? state.employees.find(e => e.email.toLowerCase() === currentUser.email.toLowerCase()) : null;
+
+  if (taskActiveFilter === "boxes") {
+    // Per-Employee Box Grid
+    container.innerHTML = `
+      <div class="staff-task-grid">
+        ${state.employees.map(emp => {
+          const empTasks = state.tasks.filter(t => t.employeeId === emp.id);
+          const doneTasks = empTasks.filter(t => t.status === "done").length;
+          const pct = empTasks.length ? Math.round((doneTasks / empTasks.length) * 100) : 0;
+          const initials = emp.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
+
+          return `
+            <div class="employee-task-box">
+              <div class="emp-box-header">
+                <div class="emp-profile-mini">
+                  <div class="emp-avatar-circle">${initials}</div>
+                  <div>
+                    <div class="emp-box-title">${escapeHtml(emp.name)}</div>
+                    <div class="emp-box-designation">${escapeHtml(emp.designation || emp.type)}</div>
+                  </div>
+                </div>
+                <span class="badge ${pct === 100 ? 'badge-success' : 'badge-info'}" style="font-size:0.7rem;">${pct}% Done</span>
+              </div>
+
+              <div class="emp-box-body">
+                <div class="emp-progress-bar-wrap">
+                  <div class="emp-progress-meta">
+                    <span>${doneTasks} of ${empTasks.length} Completed</span>
+                    <span>${pct}%</span>
+                  </div>
+                  <div class="emp-progress-track">
+                    <div class="emp-progress-fill" style="width:${pct}%;"></div>
+                  </div>
+                </div>
+
+                <div>
+                  ${empTasks.map(t => `
+                    <div class="emp-task-item ${t.status === 'done' ? 'done' : ''}">
+                      <div style="flex:1;">
+                        <div style="font-weight:600;color:var(--ink);">${escapeHtml(t.title)}</div>
+                        <div style="font-size:0.72rem;color:#64748b;margin-top:2px;">Due: ${fmtDate(t.due)}</div>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:4px;">
+                        <button class="btn-sm" style="padding:2px 6px;font-size:0.7rem;" onclick="appToggleTask('${t.id}')">
+                          ${t.status === 'done' ? '✓ Done' : t.status === 'in progress' ? 'In Progress' : 'Start'}
+                        </button>
+                        <button class="btn-sm" style="padding:2px 4px;font-size:0.7rem;color:var(--error);" title="Delete Task" onclick="appDeleteTask('${t.id}')">&times;</button>
+                      </div>
+                    </div>
+                  `).join("") || `<div style="text-align:center;color:#94a3b8;font-size:0.8rem;padding:20px;">No tasks assigned yet</div>`}
+                </div>
+              </div>
+
+              <div class="emp-box-footer">
+                <button class="btn-sm teal" style="width:100%;font-size:0.8rem;" onclick="appOpenTaskModalForEmp('${emp.id}')">+ Add Task for ${escapeHtml(emp.name.split(' ')[0])}</button>
+              </div>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    `;
+  } else if (taskActiveFilter === "my") {
+    const empTasks = myEmp ? state.tasks.filter(t => t.employeeId === myEmp.id) : state.tasks;
+    const doneTasks = empTasks.filter(t => t.status === "done").length;
+    const pct = empTasks.length ? Math.round((doneTasks / empTasks.length) * 100) : 0;
+
+    container.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <h3>My Daily Tasks Checklist (${myEmp ? myEmp.name : 'Personal'})</h3>
+          <div class="card-actions">
+            <span class="badge badge-success">${doneTasks} / ${empTasks.length} Completed (${pct}%)</span>
+            <button class="btn-sm teal" onclick="appOpenTaskModal()">+ Add Task</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="emp-progress-track" style="margin-bottom:16px;">
+            <div class="emp-progress-fill" style="width:${pct}%;"></div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Task Title</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${empTasks.map(t => `
+                <tr>
+                  <td><strong>${escapeHtml(t.title)}</strong></td>
+                  <td>${fmtDate(t.due)}</td>
+                  <td><span class="badge ${t.status === 'done' ? 'badge-success' : t.status === 'in progress' ? 'badge-warning' : 'badge-info'}">${escapeHtml(t.status)}</span></td>
+                  <td>${t.progress}%</td>
+                  <td style="display:flex;gap:6px;">
+                    <button class="btn-sm teal" style="padding:4px 8px;font-size:0.75rem;" onclick="appToggleTask('${t.id}')">
+                      ${t.status === 'done' ? 'Mark Pending' : t.status === 'in progress' ? 'Mark Done' : 'Start Task'}
+                    </button>
+                    <button class="btn-sm" style="padding:4px 8px;font-size:0.75rem;color:var(--error);" onclick="appDeleteTask('${t.id}')">Delete</button>
+                  </td>
+                </tr>
+              `).join("") || `<tr><td colspan="5" style="text-align:center;color:var(--ink-dim);padding:20px;">No tasks assigned to you today.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } else if (taskActiveFilter === "all") {
+    container.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <h3>All Staff Tasks Register</h3>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Task</th><th>Assigned To</th><th>Status</th><th>Due</th><th>Progress</th><th>Action</th></tr></thead>
+            <tbody>
+              ${state.tasks.map(task => {
+                const emp = state.employees.find(e => e.id === task.employeeId);
+                return `<tr>
+                  <td>${escapeHtml(task.title)}</td>
+                  <td><strong>${escapeHtml(emp ? emp.name : "Staff")}</strong></td>
+                  <td><span class="badge ${task.status==='done'?'badge-success':task.status==='in progress'?'badge-warning':'badge-info'}">${escapeHtml(task.status)}</span></td>
+                  <td>${fmtDate(task.due)}</td>
+                  <td>${task.progress}%</td>
+                  <td style="display:flex;gap:6px;">
+                    <button class="btn-sm" style="padding:4px 8px;font-size:0.75rem;" onclick="appToggleTask('${task.id}')">Toggle Status</button>
+                    <button class="btn-sm" style="padding:4px 8px;font-size:0.75rem;color:var(--error);" onclick="appDeleteTask('${task.id}')">Delete</button>
+                  </td>
+                </tr>`;
+              }).join("") || `<tr><td colspan="6" style="text-align:center;color:var(--ink-dim);padding:20px;">No tasks</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function appToggleTask(id) {
+  const t = state.tasks.find(x => x.id === id);
+  if (!t) return;
+  const order = ["pending", "in progress", "done"];
+  let i = order.indexOf(t.status);
+  i = (i + 1) % order.length;
+  t.status = order[i];
+  t.progress = t.status === "done" ? 100 : (t.status === "in progress" ? 50 : 0);
+  audit("task_toggled", t.title, `now ${t.status} (${t.progress}%)`);
+  persist();
+  renderTasksContent();
+}
+
+function appOpenTaskModalForEmp(empId) {
+  appOpenTaskModal(empId);
+}
+
+function appOpenTaskModal(preSelectedEmpId) {
+  const mod = document.createElement("div");
+  mod.className = "modal-overlay";
+  mod.innerHTML = `
+    <div class="modal" style="max-width:540px;">
+      <div class="modal-header"><h3>Add Staff Task</h3><button class="btn-close" onclick="this.closest('.modal-overlay').remove()">&times;</button></div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="field">
+            <label>Assign To Staff</label>
+            <select id="taskEmp">
+              ${state.employees.map(e => `<option value="${e.id}" ${preSelectedEmpId === e.id ? 'selected' : ''}>${escapeHtml(e.name)} (${escapeHtml(e.designation || e.type)})</option>`).join("")}
+            </select>
+          </div>
+          <div class="field">
+            <label>Task Title / Deliverable</label>
+            <input type="text" id="taskTitle" placeholder="e.g. Prepare monthly voucher report">
+          </div>
+          <div class="field">
+            <label>Due Date</label>
+            <input type="date" id="taskDue" value="${new Date().toISOString().split('T')[0]}">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sm" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+        <button class="btn-sm teal" onclick="appSaveTask()">Add Task</button>
+      </div>
+    </div>
+  `;
+  $q("#modals").appendChild(mod);
+}
+
+function appSaveTask() {
+  const emp = $q("#taskEmp").value;
+  const title = $q("#taskTitle").value.trim();
+  const due = $q("#taskDue").value;
+  if (!title || !due) { alert("Fill title and due date"); return; }
+  const assignedEmp = state.employees.find(e => e.id === emp);
+  state.tasks.unshift({
+    id: "t" + Date.now(), employeeId: emp, title, status: "pending", due, progress: 0, createdAt: nowIso()
+  });
+  audit("task_created", title, `assigned to ${assignedEmp ? assignedEmp.name : 'Staff'}`);
+  persist();
+  const mod = $q(".modal-overlay");
+  if (mod) mod.remove();
+  renderTasksContent();
+}
+
+function appDeleteTask(id) {
+  if (!confirm("Delete this task?")) return;
+  state.tasks = state.tasks.filter(x => x.id !== id);
+  audit("task_deleted", id, "Task deleted");
+  persist();
+  renderTasksContent();
 }
 
 /* ==========================================================================
@@ -1655,7 +2966,7 @@ function renderOvertime(el) {
   const t = $q("#otList");
   t.innerHTML = state.overtime.map(o => {
     const emp = state.employees.find(e => e.id === o.employeeId);
-    const action = o.status === "pending" && isAdmin()
+    const action = o.status === "pending" && (isAdmin() || isSuperAdmin())
       ? `<button class="btn-sm teal" style="padding:4px 8px;font-size:0.75rem;" onclick="appOTAction('${o.id}','approved')">Approve</button>
          <button class="btn-sm" style="padding:4px 8px;font-size:0.75rem;color:var(--error);" onclick="appOTAction('${o.id}','rejected')">Reject</button>`
       : `<span style="font-size:0.78rem;color:var(--ink-dim);">${escapeHtml(o.approvedBy || '-')}</span>`;
@@ -1738,252 +3049,6 @@ function appOTAction(id, status) {
 }
 
 /* ==========================================================================
-   MODULE: REQUEST INVOICE
-   ========================================================================== */
-function renderInvoice(el) {
-  el.innerHTML = `
-    <div class="module-header">
-      <div>
-        <h2>Request Invoice</h2>
-        <div class="sub">Create and track client invoices.</div>
-      </div>
-      <div class="card-actions">
-        <button class="btn-sm teal" onclick="appOpenInvoiceModal()">+ New Invoice</button>
-        <button class="btn-sm" onclick="appNavigateBack()">Back</button>
-      </div>
-    </div>
-
-    <div class="kpi-row">
-      <div class="kpi"><div class="kpi-label">Total Invoiced</div><div class="kpi-value">${fmtMoney(state.invoices.reduce((a,i)=>a+Number(i.amount||0),0))}</div><div class="kpi-delta neu">${state.invoices.length} invoices</div></div>
-      <div class="kpi"><div class="kpi-label">Unpaid</div><div class="kpi-value">${state.invoices.filter(i=>i.status!=='paid').length}</div><div class="kpi-delta neu">outstanding</div></div>
-      <div class="kpi"><div class="kpi-label">Paid</div><div class="kpi-value">${state.invoices.filter(i=>i.status==='paid').length}</div><div class="kpi-delta pos">completed</div></div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><h3>Invoice Register</h3></div>
-      <div class="card-body">
-        <table>
-          <thead><tr><th>Ref</th><th>Client</th><th>Date</th><th>Due</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="invoiceList"></tbody>
-        </table>
-      </div>
-    </div>
-  `;
-  const t = $q("#invoiceList");
-  t.innerHTML = state.invoices.map(i => `
-    <tr>
-      <td><strong>${escapeHtml(i.ref)}</strong></td>
-      <td>${escapeHtml(i.client)}</td>
-      <td>${fmtDate(i.date)}</td>
-      <td>${fmtDate(i.due)}</td>
-      <td>${fmtMoney(i.amount)}</td>
-      <td><span class="badge ${i.status==='paid'?'badge-success':i.status==='pending'?'badge-warning':'badge-error'}">${escapeHtml(i.status)}</span></td>
-      <td style="display:flex;gap:6px;">
-        ${i.status !== 'paid' ? `<button class="btn-sm teal" style="padding:4px 8px;font-size:0.75rem;" onclick="appInvoiceStatus('${i.id}','paid')">Mark Paid</button>` : ''}
-        <button class="btn-sm" style="padding:4px 8px;font-size:0.75rem;color:var(--error);" onclick="appDeleteInvoice('${i.id}')">Delete</button>
-      </td>
-    </tr>
-  `).join("") || `<tr><td colspan="7" style="text-align:center;color:var(--ink-dim);padding:20px;">No invoices yet</td></tr>`;
-}
-
-function appOpenInvoiceModal() {
-  const mod = document.createElement("div");
-  mod.className = "modal-overlay";
-  mod.innerHTML = `
-    <div class="modal" style="max-width:540px;">
-      <div class="modal-header"><h3>New Invoice</h3><button class="btn-close" onclick="this.closest('.modal-overlay').remove()">&times;</button></div>
-      <div class="modal-body">
-        <div class="form-grid">
-          <div class="field">
-            <label>Invoice Ref</label>
-            <input type="text" id="invRef" value="INV-${new Date().getFullYear()}-${String(state.invoices.length+1).padStart(3,'0')}">
-          </div>
-          <div class="field">
-            <label>Client Name</label>
-            <input type="text" id="invClient" placeholder="e.g. ABC Corporation">
-          </div>
-          <div class="field">
-            <label>Date</label>
-            <input type="date" id="invDate" value="${new Date().toISOString().split('T')[0]}">
-          </div>
-          <div class="field">
-            <label>Due Date</label>
-            <input type="date" id="invDue" value="${new Date(Date.now() + 15*86400000).toISOString().split('T')[0]}">
-          </div>
-          <div class="field">
-            <label>Amount (₱)</label>
-            <input type="number" id="invAmount" step="0.01" min="0" placeholder="0.00">
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-sm" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-        <button class="btn-sm teal" onclick="appSaveInvoice()">Save Invoice</button>
-      </div>
-    </div>
-  `;
-  $q("#modals").appendChild(mod);
-}
-
-function appSaveInvoice() {
-  const ref = $q("#invRef").value.trim();
-  const client = $q("#invClient").value.trim();
-  const date = $q("#invDate").value;
-  const due = $q("#invDue").value;
-  const amount = $q("#invAmount").value;
-  if (!ref || !client || !date || !amount) { alert("Fill all required fields"); return; }
-  state.invoices.unshift({
-    id: "inv" + Date.now(), ref, client, date, due, amount: Number(amount),
-    status: "pending", createdAt: nowIso()
-  });
-  audit("invoice_created", ref, `₱${amount} for ${client}`);
-  persist();
-  const mod = $q(".modal-overlay");
-  if (mod) mod.remove();
-  renderInvoice($q("#appContent"));
-  notif(currentUser ? currentUser.id : "all", `Invoice ${ref} created`, "invoice");
-}
-
-function appInvoiceStatus(id, status) {
-  const i = state.invoices.find(x => x.id === id);
-  if (!i) return;
-  i.status = status;
-  audit("invoice_" + status, i.ref, `Status changed to ${status}`);
-  persist();
-  renderInvoice($q("#appContent"));
-}
-
-function appDeleteInvoice(id) {
-  if (!confirm("Delete this invoice?")) return;
-  state.invoices = state.invoices.filter(x => x.id !== id);
-  audit("invoice_deleted", id, "Invoice deleted");
-  persist();
-  renderInvoice($q("#appContent"));
-}
-
-/* ==========================================================================
-   MODULE: STAFF DAILY TASKS
-   ========================================================================== */
-function renderTasks(el) {
-  el.innerHTML = `
-    <div class="module-header">
-      <div>
-        <h2>Staff Daily Task Monitoring</h2>
-        <div class="sub">Track daily tasks per staff member.</div>
-      </div>
-      <div class="card-actions">
-        <button class="btn-sm teal" onclick="appOpenTaskModal()">+ Add Task</button>
-        <button class="btn-sm" onclick="appNavigateBack()">Back</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><h3>Task Board</h3></div>
-      <div class="card-body">
-        <table>
-          <thead><tr><th>Task</th><th>Assigned To</th><th>Status</th><th>Due</th><th>Progress</th><th>Action</th></tr></thead>
-          <tbody id="taskList"></tbody>
-        </table>
-      </div>
-    </div>
-  `;
-  const t = $q("#taskList");
-  t.innerHTML = state.tasks.map(task => {
-    const emp = state.employees.find(e => e.id === task.employeeId);
-    return `<tr>
-      <td>${escapeHtml(task.title)}</td>
-      <td>${escapeHtml(emp ? emp.name : "Staff")}</td>
-      <td><span class="badge ${task.status==='done'?'badge-success':task.status==='in progress'?'badge-warning':'badge-info'}">${escapeHtml(task.status)}</span></td>
-      <td>${fmtDate(task.due)}</td>
-      <td>${task.progress}% <div style="width:60px;height:6px;background:var(--surface-2);border-radius:3px;margin-top:4px;"><div style="width:${task.progress}%;height:100%;background:var(--teal);border-radius:3px;"></div></div></td>
-      <td style="display:flex;gap:6px;">
-        <button class="btn-sm task-toggle" onclick="appToggleTask('${task.id}')" style="padding:4px 8px;font-size:0.75rem;">
-          ${task.status === 'done' ? 'Mark Pending' : task.status === 'in progress' ? 'Mark Done' : 'Start Task'}
-        </button>
-        <button class="btn-sm" onclick="appDeleteTask('${task.id}')" style="padding:4px 8px;font-size:0.75rem;color:var(--error);">Delete</button>
-      </td>
-    </tr>`;
-  }).join("") || `<tr><td colspan="6" style="text-align:center;color:var(--ink-dim);padding:20px;">No tasks</td></tr>`;
-}
-
-function appToggleTask(id) {
-  const t = state.tasks.find(x => x.id === id);
-  if (!t) return;
-  const order = ["pending", "in progress", "done"];
-  let i = order.indexOf(t.status);
-  i = (i + 1) % order.length;
-  t.status = order[i];
-  t.progress = t.status === "done" ? 100 : (t.status === "in progress" ? 50 : 0);
-  audit("task_toggled", t.title, `now ${t.status} (${t.progress}%)`);
-  persist();
-  renderTasks($q("#appContent"));
-}
-
-function appOpenTaskModal() {
-  const mod = document.createElement("div");
-  mod.className = "modal-overlay";
-  mod.innerHTML = `
-    <div class="modal" style="max-width:540px;">
-      <div class="modal-header"><h3>Add Task</h3><button class="btn-close" onclick="this.closest('.modal-overlay').remove()">&times;</button></div>
-      <div class="modal-body">
-        <div class="form-grid">
-          <div class="field">
-            <label>Assign To</label>
-            <select id="taskEmp">${state.employees.map(e=>`<option value="${e.id}">${escapeHtml(e.name)} (${e.type})</option>`).join("")}</select>
-          </div>
-          <div class="field">
-            <label>Task Title</label>
-            <input type="text" id="taskTitle" placeholder="e.g. Prepare monthly voucher report">
-          </div>
-          <div class="field">
-            <label>Due Date</label>
-            <input type="date" id="taskDue" value="${new Date(Date.now() + 7*86400000).toISOString().split('T')[0]}">
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-sm" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-        <button class="btn-sm teal" onclick="appSaveTask()">Add Task</button>
-      </div>
-    </div>
-  `;
-  $q("#modals").appendChild(mod);
-}
-
-function appSaveTask() {
-  const emp = $q("#taskEmp").value;
-  const title = $q("#taskTitle").value.trim();
-  const due = $q("#taskDue").value;
-  if (!title || !due) { alert("Fill title and due date"); return; }
-  const assignedEmp = state.employees.find(e=>e.id===emp);
-  state.tasks.unshift({
-    id: "t" + Date.now(), employeeId: emp, title, status: "pending", due, progress: 0, createdAt: nowIso()
-  });
-  audit("task_created", title, `assigned to ${assignedEmp ? assignedEmp.name : 'Staff'}`);
-  persist();
-  const mod = $q(".modal-overlay");
-  if (mod) mod.remove();
-  renderTasks($q("#appContent"));
-}
-
-function appTaskStatus(id, status) {
-  const t = state.tasks.find(x => x.id === id);
-  if (!t) return;
-  t.status = status;
-  t.progress = status === "done" ? 100 : (status === "in progress" ? 50 : 0);
-  persist();
-  renderTasks($q("#appContent"));
-}
-
-function appDeleteTask(id) {
-  if (!confirm("Delete this task?")) return;
-  state.tasks = state.tasks.filter(x => x.id !== id);
-  audit("task_deleted", id, "Task deleted");
-  persist();
-  renderTasks($q("#appContent"));
-}
-
-/* ==========================================================================
    MODULE: AUDIT LOGS
    ========================================================================== */
 function renderAudit(el) {
@@ -2029,15 +3094,15 @@ function appClearAudit() {
 }
 
 /* ==========================================================================
-   MODULE: ADMINS (add admins)
+   MODULE: ADMINS & MENU CONTROLS (ROLE-BASED ACCESS)
    ========================================================================== */
 function renderAdmin(el) {
   if (!isAdmin()) { el.innerHTML = "<div class='empty-state'><div class='empty-icon'>🔒</div><h3>Admin access required</h3><p>Only authorized super admins can manage admins.</p></div>"; return; }
   el.innerHTML = `
     <div class="module-header">
       <div>
-        <h2>Admin Controls</h2>
-        <div class="sub">Authorized Super Admins: ${SUPER_ADMINS.join(", ")}</div>
+        <h2>Admin Controls &amp; Menu Permissions</h2>
+        <div class="sub">Configure menu access checkboxes per admin. Super Admins always retain full unblockable access.</div>
       </div>
       <div class="card-actions">
         <button class="btn-sm teal" onclick="appOpenAdminModal()">+ Add Admin</button>
@@ -2046,10 +3111,10 @@ function renderAdmin(el) {
     </div>
 
     <div class="card">
-      <div class="card-header"><h3>Registered Admins</h3></div>
+      <div class="card-header"><h3>Registered Admins &amp; Assigned Permissions</h3></div>
       <div class="card-body">
         <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Joined</th><th>Super Admin?</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Joined</th><th>Role</th><th>Allowed Menus</th><th>Actions</th></tr></thead>
           <tbody id="adminList"></tbody>
         </table>
       </div>
@@ -2060,17 +3125,20 @@ function renderAdmin(el) {
   t.innerHTML = admins.map(a => {
     const isSuper = SUPER_ADMINS.includes(a.email.toLowerCase());
     const blocked = a.status === "blocked";
+    const permSummary = isSuper ? "All Menus (Full Access)" : (a.permissions && a.permissions.length ? a.permissions.join(", ") : "All Menus");
+
     return `<tr>
       <td>${escapeHtml(a.name)}</td>
       <td>${escapeHtml(a.email)}</td>
       <td><span class="badge ${blocked ? 'badge-error' : 'badge-bg'}" style="text-transform:none;">${blocked ? "Blocked" : (a.status === 'active' ? "Active" : a.status || "Active")}</span></td>
       <td>${fmtDate(a.createdAt)}</td>
-      <td>${isSuper ? "Yes (Super Admin)" : "No"}</td>
+      <td>${isSuper ? "Super Admin" : "Staff Admin"}</td>
+      <td><span style="font-size:0.78rem;color:#475569;">${escapeHtml(permSummary)}</span></td>
       <td>
-        ${isSuper ? "<span style='font-size:0.78rem;color:var(--ink-dim);'>owner</span>" : `
-          <button class="btn-sm" onclick="appBlockAdmin('${a.id}', ${!blocked})" style="padding:4px 8px;font-size:0.78rem;border-radius:6px;border:1px solid var(--line);">${blocked ? "Unblock" : "Block"}</button>
-          <button class="btn-sm" onclick="appEditAdmin('${a.id}')" style="padding:4px 8px;font-size:0.78rem;border-radius:6px;border:1px solid var(--line);">Edit</button>
-          <button class="btn-sm" onclick="appDeleteAdmin('${a.id}')" style="padding:4px 8px;font-size:0.78rem;border-radius:6px;border:1px solid var(--line);color:var(--error);border-color:var(--error);">Delete</button>
+        ${isSuper ? "<span style='font-size:0.78rem;color:var(--ink-dim);'>Owner</span>" : `
+          <button class="btn-sm" onclick="appBlockAdmin('${a.id}', ${!blocked})" style="padding:4px 8px;font-size:0.78rem;">${blocked ? "Unblock" : "Block"}</button>
+          <button class="btn-sm" onclick="appEditAdminModal('${a.id}')" style="padding:4px 8px;font-size:0.78rem;">Edit Perms</button>
+          <button class="btn-sm" onclick="appDeleteAdmin('${a.id}')" style="padding:4px 8px;font-size:0.78rem;color:var(--error);">Delete</button>
         `}
       </td>
     </tr>`;
@@ -2086,19 +3154,127 @@ async function appBlockAdmin(id, blocked) {
   renderAdmin($q("#appContent"));
 }
 
-async function appEditAdmin(id) {
-  const admin = (state.admins || []).find(a => a.id === id) || state.users.find(u => u.id === id);
-  if (!admin) { alert("Admin not found"); return; }
-  const name = prompt("Edit admin name:", admin.name);
-  if (!name) return;
-  const email = prompt("Edit admin email:", admin.email);
-  if (!email) return;
+function appOpenAdminModal() {
+  const mod = document.createElement("div");
+  mod.className = "modal-overlay";
+  mod.innerHTML = `
+    <div class="modal" style="max-width:580px;">
+      <div class="modal-header"><h3>Add Admin &amp; Assign Menu Controls</h3><button class="btn-close" onclick="this.closest('.modal-overlay').remove()">&times;</button></div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" id="admName" placeholder="Full name">
+          </div>
+          <div class="field">
+            <label>Email (Gmail)</label>
+            <input type="email" id="admEmail" placeholder="admin@gmail.com">
+          </div>
+        </div>
+
+        <div class="acti-sheet-section-title" style="margin-top:16px;">Allowed Menus / Module Access</div>
+        <div class="permission-matrix">
+          ${MODULES.map(m => `
+            <label class="perm-check-item">
+              <input type="checkbox" name="admPerm" value="${m.key}" checked>
+              <span>${m.label}</span>
+            </label>
+          `).join("")}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sm" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+        <button class="btn-sm teal" onclick="appSaveNewAdmin()">Add Admin</button>
+      </div>
+    </div>
+  `;
+  $q("#modals").appendChild(mod);
+}
+
+function appEditAdminModal(id) {
+  const admin = (state.admins || []).find(a => a.id === id);
+  if (!admin) return;
+  const currentPerms = admin.permissions || MODULES.map(m => m.key);
+
+  const mod = document.createElement("div");
+  mod.className = "modal-overlay";
+  mod.innerHTML = `
+    <div class="modal" style="max-width:580px;">
+      <div class="modal-header"><h3>Edit Permissions — ${escapeHtml(admin.name)}</h3><button class="btn-close" onclick="this.closest('.modal-overlay').remove()">&times;</button></div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="field">
+            <label>Name</label>
+            <input type="text" id="editAdmName" value="${escapeHtml(admin.name)}">
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="editAdmEmail" value="${escapeHtml(admin.email)}">
+          </div>
+        </div>
+
+        <div class="acti-sheet-section-title" style="margin-top:16px;">Menu Access Checkboxes</div>
+        <div class="permission-matrix">
+          ${MODULES.map(m => `
+            <label class="perm-check-item">
+              <input type="checkbox" name="editAdmPerm" value="${m.key}" ${currentPerms.includes(m.key) || currentPerms.includes("*") ? 'checked' : ''}>
+              <span>${m.label}</span>
+            </label>
+          `).join("")}
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sm" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+        <button class="btn-sm teal" onclick="appSaveAdminPerms('${admin.id}')">Save Changes</button>
+      </div>
+    </div>
+  `;
+  $q("#modals").appendChild(mod);
+}
+
+async function appSaveNewAdmin() {
+  const name = $q("#admName").value.trim();
+  const email = $q("#admEmail").value.trim();
+  if (!name || !email) { alert("Fill name and email"); return; }
+  const checkedBoxes = $all('input[name="admPerm"]:checked');
+  const perms = checkedBoxes.map(cb => cb.value);
+
   try {
-    await api.editAdmin(id, { name, email });
-    audit("admin_edited", email, `edited admin ${name}`);
-    notif(currentUser ? currentUser.id : "all", `Admin updated: ${name}`, "admin");
-  } catch (errMsg) { alert(errMsg); return; }
+    const admin = await api.addAdmin(email, name);
+    admin.permissions = perms;
+    const existing = (state.admins || []).find(a => a.email.toLowerCase() === email.toLowerCase());
+    if (existing) existing.permissions = perms;
+    audit("admin_added", admin.email, `${admin.name} added with ${perms.length} menu permissions`);
+    notif(currentUser ? currentUser.id : "all", `New admin added: ${admin.name}`, "admin");
+    persist();
+  } catch (errMsg) {
+    alert(errMsg);
+    return;
+  }
+  const mod = $q(".modal-overlay");
+  if (mod) mod.remove();
   renderAdmin($q("#appContent"));
+  renderSidebar();
+}
+
+function appSaveAdminPerms(id) {
+  const admin = (state.admins || []).find(a => a.id === id);
+  if (!admin) return;
+  const name = $q("#editAdmName") ? $q("#editAdmName").value.trim() : admin.name;
+  const email = $q("#editAdmEmail") ? $q("#editAdmEmail").value.trim() : admin.email;
+  const checkedBoxes = $all('input[name="editAdmPerm"]:checked');
+  const perms = checkedBoxes.map(cb => cb.value);
+
+  admin.name = name;
+  admin.email = email;
+  admin.permissions = perms;
+  audit("admin_permissions_updated", admin.email, `Updated permissions: ${perms.join(", ")}`);
+  persist();
+
+  const mod = $q(".modal-overlay");
+  if (mod) mod.remove();
+  renderAdmin($q("#appContent"));
+  renderSidebar();
 }
 
 async function appDeleteAdmin(id) {
@@ -2108,56 +3284,12 @@ async function appDeleteAdmin(id) {
   if (!confirm(`Delete admin ${admin.name} (${admin.email})?`)) return;
   try {
     await api.deleteAdmin(id);
+    state.admins = (state.admins || []).filter(a => a.id !== id);
     audit("admin_deleted", admin.email, `deleted admin ${admin.name}`);
     notif(currentUser ? currentUser.id : "all", `Admin deleted: ${admin.name}`, "admin");
+    persist();
   } catch (errMsg) { alert(errMsg); return; }
   renderAdmin($q("#appContent"));
-}
-
-function appOpenAdminModal() {
-  const mod = document.createElement("div");
-  mod.className = "modal-overlay";
-  mod.innerHTML = `
-    <div class="modal" style="max-width:520px;">
-      <div class="modal-header"><h3>Add Admin</h3><button class="btn-close" onclick="this.closest('.modal-overlay').remove()">&times;</button></div>
-      <div class="modal-body">
-        <div class="form-grid">
-          <div class="field">
-            <label>Name</label>
-            <input type="text" id="admName" placeholder="Full name">
-          </div>
-          <div class="field">
-            <label>Email (Gmail)</label>
-            <input type="email" id="admEmail" placeholder="admin@gmail.com">
-          </div>
-        </div>
-        <p class="hint">Admins can approve leave, view audit logs, and manage office records.</p>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-sm" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-        <button class="btn-sm teal" onclick="appSaveAdmin()">Add Admin</button>
-      </div>
-    </div>
-  `;
-  $q("#modals").appendChild(mod);
-}
-
-async function appSaveAdmin() {
-  const name = $q("#admName").value.trim();
-  const email = $q("#admEmail").value.trim();
-  if (!name || !email) { alert("Fill name and email"); return; }
-  try {
-    const admin = await api.addAdmin(email, name);
-    audit("admin_added", admin.email, `${admin.name} added as admin`);
-    notif(currentUser ? currentUser.id : "all", `New admin added: ${admin.name}`, "admin");
-  } catch (errMsg) {
-    alert(errMsg);
-    return;
-  }
-  const mod = $q(".modal-overlay");
-  if (mod) mod.remove();
-  renderAdmin($q("#appContent"));
-  renderSidebar();
 }
 
 /* ==========================================================================
@@ -2169,7 +3301,7 @@ function renderStaff(el) {
     <div class="module-header">
       <div>
         <h2>Staff Enrollment</h2>
-        <div class="sub">Enroll staff into the system. Enrolled staff can file leave and overtime.</div>
+        <div class="sub">Enroll staff into the system. Enrolled staff can file leave, overtime, and be assigned tasks.</div>
       </div>
       <div class="card-actions">
         <button class="btn-sm teal" onclick="appOpenStaffModal()">+ Enroll Staff</button>
@@ -2178,10 +3310,10 @@ function renderStaff(el) {
     </div>
 
     <div class="card">
-      <div class="card-header"><h3>Enrolled Staff</h3></div>
+      <div class="card-header"><h3>Enrolled Staff Roster</h3></div>
       <div class="card-body">
         <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Status</th><th>Joined</th><th>Leave Balance</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Name</th><th>Email</th><th>Designation</th><th>Contact</th><th>Status</th><th>Joined</th><th>Leave Balance</th><th>Actions</th></tr></thead>
           <tbody id="staffList"></tbody>
         </table>
       </div>
@@ -2191,16 +3323,17 @@ function renderStaff(el) {
   t.innerHTML = state.employees.map(emp => {
     const isSuper = SUPER_ADMINS.includes(emp.email.toLowerCase());
     return `<tr>
-      <td>${escapeHtml(emp.name)}</td>
+      <td><strong>${escapeHtml(emp.name)}</strong></td>
       <td>${escapeHtml(emp.email)}</td>
-      <td><span class="badge badge-info" style="text-transform:none;">${escapeHtml(emp.type)}</span></td>
+      <td><span class="badge badge-info" style="text-transform:none;">${escapeHtml(emp.designation || emp.type)}</span></td>
+      <td>${escapeHtml(emp.contactNumber || 'N/A')}</td>
       <td><span class="badge ${emp.status === 'Active' ? 'badge-bg' : 'badge-error'}">${escapeHtml(emp.status)}</span></td>
       <td>${fmtDate(emp.joinDate)}</td>
-      <td>${emp.leaveBalance != null ? emp.leaveBalance : 0} days</td>
+      <td>${emp.leaveBalance != null ? emp.leaveBalance : 15} days</td>
       <td>
-        ${isSuper ? "<span style='font-size:0.78rem;color:var(--ink-dim);'>super admin</span>" : `
-          <button class="btn-sm" onclick="appEditStaff('${emp.id}')" style="padding:4px 8px;font-size:0.78rem;border-radius:6px;border:1px solid var(--line);">Edit</button>
-          <button class="btn-sm" onclick="appDeleteStaff('${emp.id}')" style="padding:4px 8px;font-size:0.78rem;border-radius:6px;border:1px solid var(--line);color:var(--error);border-color:var(--error);">Delete</button>
+        ${isSuper ? "<span style='font-size:0.78rem;color:var(--ink-dim);'>Super Admin</span>" : `
+          <button class="btn-sm" onclick="appEditStaff('${emp.id}')" style="padding:4px 8px;font-size:0.78rem;">Edit</button>
+          <button class="btn-sm" onclick="appDeleteStaff('${emp.id}')" style="padding:4px 8px;font-size:0.78rem;color:var(--error);">Delete</button>
         `}
       </td>
     </tr>`;
@@ -2225,6 +3358,14 @@ function appOpenStaffModal(empId) {
             <input type="email" id="staffEmail" value="${existing ? escapeHtml(existing.email) : ''}" placeholder="email@gmail.com">
           </div>
           <div class="field">
+            <label>Designation Title</label>
+            <input type="text" id="staffDesignation" value="${existing ? escapeHtml(existing.designation || existing.type) : 'Admin Staff'}" placeholder="e.g. Supervisor, Admin Staff, Clerk">
+          </div>
+          <div class="field">
+            <label>Contact Number</label>
+            <input type="text" id="staffContact" value="${existing ? escapeHtml(existing.contactNumber || '') : ''}" placeholder="09xxxxxxxxx">
+          </div>
+          <div class="field">
             <label>Staff Type</label>
             <select id="staffType">${['staff','supervisor','manager','regular','contractual','permanent'].map(t => `<option ${existing && existing.type === t ? 'selected' : ''}>${t}</option>`).join("")}</select>
           </div>
@@ -2236,7 +3377,7 @@ function appOpenStaffModal(empId) {
       </div>
       <div class="modal-footer">
         <button class="btn-sm" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-        <button class="btn-sm teal" onclick="appSaveStaff('${existing ? existing.id : ''}')">Save</button>
+        <button class="btn-sm teal" onclick="appSaveStaff('${existing ? existing.id : ''}')">Save Staff</button>
       </div>
     </div>
   `;
@@ -2246,21 +3387,25 @@ function appOpenStaffModal(empId) {
 async function appSaveStaff(empId) {
   const name = $q("#staffName").value.trim();
   const email = $q("#staffEmail").value.trim();
+  const designation = ($q("#staffDesignation") ? $q("#staffDesignation").value.trim() : "") || "Admin Staff";
+  const contactNumber = $q("#staffContact") ? $q("#staffContact").value.trim() : "";
   const type = $q("#staffType").value;
-  const leaveBalance = Number($q("#staffLeave").value || 0);
+  const leaveBalance = Number($q("#staffLeave").value || 15);
   if (!name || !email) { alert("Fill name and email"); return; }
   try {
     if (empId) {
       const idx = state.employees.findIndex(e => e.id === empId);
       if (idx !== -1) {
-        state.employees[idx] = { ...state.employees[idx], name, email, type, leaveBalance };
+        state.employees[idx] = { ...state.employees[idx], name, email, designation, contactNumber, type, leaveBalance };
       }
-      try { await api.update("employees", empId, { name, email, type, leaveBalance }); } catch (_) {}
+      try { await api.update("employees", empId, { name, email, designation, contactNumber, type, leaveBalance }); } catch (_) {}
     } else {
       const newStaff = {
         id: "e" + Date.now(),
         name,
         email,
+        designation,
+        contactNumber,
         type,
         status: "Active",
         joinDate: new Date().toISOString().split("T")[0],
@@ -2273,7 +3418,7 @@ async function appSaveStaff(empId) {
       state.employees.unshift(newStaff);
       try { await api.create("employees", newStaff); } catch (_) {}
     }
-    audit("staff_" + (empId ? "edited" : "enrolled"), email, `${name} (${type})`);
+    audit("staff_" + (empId ? "edited" : "enrolled"), email, `${name} (${designation})`);
     notif(currentUser ? currentUser.id : "all", `Staff ${empId ? 'updated' : 'enrolled'}: ${name}`, "staff");
     persist();
   } catch (errMsg) { alert(errMsg); return; }
@@ -2302,54 +3447,109 @@ async function appDeleteStaff(id) {
 }
 
 /* ==========================================================================
-   MODULE: CONTROLS CHECKLIST
+   MODULE: CONTROLS CHECKLIST (DAILY, WEEKLY, MONTHLY BREAKDOWN)
    ========================================================================== */
 function renderControls(el) {
   el.innerHTML = `
     <div class="module-header">
       <div>
         <h2>Controls Checklist</h2>
-        <div class="sub">Tick the boxes for office controls and daily management processes.</div>
+        <div class="sub">Structured daily, weekly, and monthly management checkpoints for ACTI operations.</div>
       </div>
-      <button class="btn-sm" onclick="appNavigateBack()">Back</button>
+      <div class="card-actions">
+        <button class="btn-sm" onclick="appResetControls()">Reset All Checkboxes</button>
+        <button class="btn-sm" onclick="appNavigateBack()">Back</button>
+      </div>
     </div>
 
+    <!-- Daily Controls Card -->
     <div class="card">
-      <div class="card-header"><h3>Office Controls</h3></div>
+      <div class="card-header">
+        <h3>1. Daily Office Operations Controls</h3>
+        <span class="badge badge-info" id="ctrlDailyBadge">Daily</span>
+      </div>
       <div class="card-body">
         <div class="form-grid">
           <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
-            <input type="checkbox" id="ctrl1" onchange="appToggleControl('ctrl1')">
-            <label for="ctrl1" style="margin:0;font-weight:700;">Daily cash count completed</label>
+            <input type="checkbox" id="ctrl_d1" onchange="appToggleControl('ctrl_d1')">
+            <label for="ctrl_d1" style="margin:0;font-weight:500;">Daily cash count balanced &amp; petty cash log verified</label>
           </div>
           <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
-            <input type="checkbox" id="ctrl2" onchange="appToggleControl('ctrl2')">
-            <label for="ctrl2" style="margin:0;font-weight:700;">Vouchers reviewed and approved</label>
+            <input type="checkbox" id="ctrl_d2" onchange="appToggleControl('ctrl_d2')">
+            <label for="ctrl_d2" style="margin:0;font-weight:500;">Disbursement &amp; Receipt vouchers reviewed and posted to register</label>
           </div>
           <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
-            <input type="checkbox" id="ctrl3" onchange="appToggleControl('ctrl3')">
-            <label for="ctrl3" style="margin:0;font-weight:700;">Payroll verified</label>
+            <input type="checkbox" id="ctrl_d3" onchange="appToggleControl('ctrl_d3')">
+            <label for="ctrl_d3" style="margin:0;font-weight:500;">Student invoice &amp; refund requests verified with Proof of Payment (POP)</label>
           </div>
           <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
-            <input type="checkbox" id="ctrl4" onchange="appToggleControl('ctrl4')">
-            <label for="ctrl4" style="margin:0;font-weight:700;">SOA uploaded to Cash Flow</label>
+            <input type="checkbox" id="ctrl_d4" onchange="appToggleControl('ctrl_d4')">
+            <label for="ctrl_d4" style="margin:0;font-weight:500;">Staff daily task monitoring cards updated</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weekly Controls Card -->
+    <div class="card" style="margin-top:20px;">
+      <div class="card-header">
+        <h3>2. Weekly Accounting &amp; Compliance Controls</h3>
+        <span class="badge badge-warning" id="ctrlWeeklyBadge">Weekly</span>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
+            <input type="checkbox" id="ctrl_w1" onchange="appToggleControl('ctrl_w1')">
+            <label for="ctrl_w1" style="margin:0;font-weight:500;">Statement of Account (SOA) PDF uploaded to Cash Flow module</label>
           </div>
           <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
-            <input type="checkbox" id="ctrl5" onchange="appToggleControl('ctrl5')">
-            <label for="ctrl5" style="margin:0;font-weight:700;">Leave requests processed</label>
+            <input type="checkbox" id="ctrl_w2" onchange="appToggleControl('ctrl_w2')">
+            <label for="ctrl_w2" style="margin:0;font-weight:500;">Overtime &amp; Offset claims audited and approved</label>
           </div>
           <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
-            <input type="checkbox" id="ctrl6" onchange="appToggleControl('ctrl6')">
-            <label for="ctrl6" style="margin:0;font-weight:700;">Overtime claims reviewed</label>
+            <input type="checkbox" id="ctrl_w3" onchange="appToggleControl('ctrl_w3')">
+            <label for="ctrl_w3" style="margin:0;font-weight:500;">Employee leave balances reviewed against approved requests</label>
+          </div>
+          <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
+            <input type="checkbox" id="ctrl_w4" onchange="appToggleControl('ctrl_w4')">
+            <label for="ctrl_w4" style="margin:0;font-weight:500;">Bank / GCash deposit slips reconciled with Cash Flow inflows</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Controls Card -->
+    <div class="card" style="margin-top:20px;">
+      <div class="card-header">
+        <h3>3. Monthly Executive &amp; Audit Controls</h3>
+        <span class="badge badge-success" id="ctrlMonthlyBadge">Monthly</span>
+      </div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
+            <input type="checkbox" id="ctrl_m1" onchange="appToggleControl('ctrl_m1')">
+            <label for="ctrl_m1" style="margin:0;font-weight:500;">Bi-weekly &amp; Monthly Auto Payroll net pay verified</label>
+          </div>
+          <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
+            <input type="checkbox" id="ctrl_m2" onchange="appToggleControl('ctrl_m2')">
+            <label for="ctrl_m2" style="margin:0;font-weight:500;">Monthly Inflow vs Outflow Cash Flow surplus/deficit reviewed</label>
+          </div>
+          <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
+            <input type="checkbox" id="ctrl_m3" onchange="appToggleControl('ctrl_m3')">
+            <label for="ctrl_m3" style="margin:0;font-weight:500;">Audit log trail reviewed for administrative security</label>
+          </div>
+          <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
+            <input type="checkbox" id="ctrl_m4" onchange="appToggleControl('ctrl_m4')">
+            <label for="ctrl_m4" style="margin:0;font-weight:500;">Staff roster contracts &amp; permanent tenure dates audited</label>
           </div>
         </div>
       </div>
     </div>
 
     <div class="card" style="margin-top:20px;">
-      <div class="card-header"><h3>Control Status</h3></div>
+      <div class="card-header"><h3>Overall Control Completion</h3></div>
       <div class="card-body">
-        <div id="controlsStatus" style="text-align:center;font-size:1.2rem;font-weight:800;color:var(--teal-dark);">0 / 6 controls completed</div>
+        <div id="controlsStatus" style="text-align:center;font-size:1.15rem;font-weight:600;color:var(--teal-dark);">0 / 12 controls completed</div>
       </div>
     </div>
   `;
@@ -2359,23 +3559,29 @@ function renderControls(el) {
 function appToggleControl(id) {
   const el = $q("#" + id);
   if (!el) return;
-  const saved = lsLoad("controls", {});
+  const saved = lsLoad("controls_checklist", {});
   saved[id] = el.checked;
-  lsSave("controls", saved);
+  lsSave("controls_checklist", saved);
   updateControlsStatus();
   audit("control_toggled", id, el.checked ? "checked" : "unchecked");
 }
 
 function updateControlsStatus() {
-  const saved = lsLoad("controls", {});
-  const ids = ["ctrl1","ctrl2","ctrl3","ctrl4","ctrl5","ctrl6"];
+  const saved = lsLoad("controls_checklist", {});
+  const ids = ["ctrl_d1","ctrl_d2","ctrl_d3","ctrl_d4","ctrl_w1","ctrl_w2","ctrl_w3","ctrl_w4","ctrl_m1","ctrl_m2","ctrl_m3","ctrl_m4"];
   const done = ids.filter(i => saved[i] === true).length;
   const el = $q("#controlsStatus");
-  if (el) el.textContent = done + " / 6 controls completed";
+  if (el) el.textContent = `${done} / ${ids.length} controls completed (${Math.round((done / ids.length) * 100)}%)`;
   ids.forEach(i => {
     const cb = $q("#" + i);
     if (cb) cb.checked = saved[i] === true;
   });
+}
+
+function appResetControls() {
+  if (!confirm("Reset all control checkboxes?")) return;
+  lsSave("controls_checklist", {});
+  updateControlsStatus();
 }
 
 /* ==========================================================================
@@ -2399,7 +3605,7 @@ function appOpenNotificationsModal() {
             ${state.notifications.map(n => `
               <div style="padding:10px 14px;border-radius:8px;background:${n.read ? 'var(--surface-2)' : '#e0f2f1'};border:1px solid ${n.read ? 'var(--line)' : '#b2dfdb'};display:flex;justify-content:space-between;align-items:center;">
                 <div>
-                  <div style="font-size:0.88rem;font-weight:${n.read ? '500' : '700'};color:var(--ink);">${escapeHtml(n.text)}</div>
+                  <div style="font-size:0.88rem;font-weight:${n.read ? '400' : '600'};color:var(--ink);">${escapeHtml(n.text)}</div>
                   <div style="font-size:0.75rem;color:var(--ink-dim);">${fmtDate(n.at)}</div>
                 </div>
                 ${n.link ? `<button class="btn-sm teal" style="padding:4px 8px;font-size:0.75rem;" onclick="appNavigate('${n.link}');document.querySelector('.modal-overlay').remove();">View</button>` : ''}
@@ -2444,8 +3650,10 @@ const HASH_TO_MODULE = {
   "#/autopayroll": "payroll",
   "#/blogger": "blogger",
   "#/onlineleavefiling": "leave",
+  "#/filealeave": "leave",
   "#/overtime": "overtime",
   "#/invoice": "invoice",
+  "#/studentrefund": "invoice",
   "#/tasks": "tasks",
   "#/staff": "staff",
   "#/controls": "controls",
@@ -2469,6 +3677,14 @@ const MODULE_TO_HASH = {
 };
 
 function hashToModule(hash) {
+  if (hash === "#/filealeave") {
+    leaveActiveTab = "file";
+    return "leave";
+  }
+  if (hash === "#/studentrefund") {
+    invoiceActiveTab = "portal";
+    return "invoice";
+  }
   return HASH_TO_MODULE[hash] || "dashboard";
 }
 
@@ -2503,6 +3719,12 @@ function handleHashChange() {
     currentModule = key;
     renderModule(key);
     closeSidebar();
+  } else if (key === "leave" && window.location.hash === "#/filealeave") {
+    leaveActiveTab = "file";
+    renderLeave($q("#appContent"));
+  } else if (key === "invoice" && window.location.hash === "#/studentrefund") {
+    invoiceActiveTab = "portal";
+    renderInvoice($q("#appContent"));
   }
 }
 
@@ -2531,23 +3753,7 @@ async function initApp() {
     const visualDial = $q("#visualDial");
     const wellStatusTag = $q("#wellStatusTag");
     const adminAccountSelect = $q("#adminAccountSelect");
-    const btnDirectDashboard = $q("#btnDirectDashboard");
     let recaptchaChecked = false;
-
-    if (btnDirectDashboard) {
-      btnDirectDashboard.onclick = (e) => {
-        const selectedEmail = adminAccountSelect ? adminAccountSelect.value : ADMIN_EMAIL;
-        const u = state.users.find(u => u.email.toLowerCase() === selectedEmail.toLowerCase()) || {
-          id: selectedEmail === "actinst.admin@gmail.com" ? "u0" : "u1",
-          email: selectedEmail,
-          name: selectedEmail === "actinst.admin@gmail.com" ? "ACTI Admin" : "Chamie D.",
-          role: "admin"
-        };
-        currentUser = u;
-        sessionStorage.setItem("cc_user", u.id);
-        localStorage.setItem("cc_user", u.id);
-      };
-    }
 
     const toggleRecaptcha = () => {
       recaptchaChecked = !recaptchaChecked;
@@ -2668,7 +3874,7 @@ async function initApp() {
   if (globalSearch) {
     globalSearch.addEventListener("input", (e) => {
       const q = e.target.value.toLowerCase();
-      const cards = $all(".card");
+      const cards = $all(".card, .employee-task-box, .acti-form-sheet");
       cards.forEach(c => {
         const text = c.textContent.toLowerCase();
         c.style.display = text.includes(q) ? "" : "none";
@@ -2691,9 +3897,9 @@ async function initApp() {
       else if (m.includes("cash")) appAddCashFlowModal();
       else if (m.includes("payroll")) appRunPayroll();
       else if (m.includes("blogger")) appOpenBlogModal();
-      else if (m.includes("leave")) appOpenLeaveModal();
+      else if (m.includes("leave")) appSwitchLeaveTab("file");
       else if (m.includes("overtime")) appOpenOTModal();
-      else if (m.includes("invoice")) appOpenInvoiceModal();
+      else if (m.includes("invoice") || m.includes("refund")) appSwitchInvoiceTab("portal");
       else if (m.includes("task")) appOpenTaskModal();
       else if (m.includes("staff")) appOpenStaffModal();
       else if (m.includes("admin")) appOpenAdminModal();
@@ -2702,7 +3908,7 @@ async function initApp() {
   }
 }
 
-// Expose all action handlers on window for HTML inline onclick/onchange handlers
+// Expose all action handlers on window
 Object.assign(window, {
   appNavigate,
   appNavigateBack,
@@ -2727,33 +3933,51 @@ Object.assign(window, {
   appViewQR,
   appDownloadQR,
   appViewBlog,
-  appOpenLeaveModal,
-  appSubmitLeave,
+  appSwitchLeaveTab,
+  appOnLeaveEmpSelect,
+  appToggleLeaveOther,
+  appComputeLeaveDays,
+  appResetLeaveForm,
+  appSubmitOfficialLeave,
   appLeaveAction,
+  appDisapproveLeaveModal,
+  appAdjustLeaveBalance,
+  appPrintOfficialLeaveForm,
   appPrintLeave,
   appOpenOTModal,
   appSubmitOT,
   appOTAction,
+  appSwitchInvoiceTab,
+  appToggleStudentReqType,
+  appHandlePOPSelect,
+  appSubmitStudentRequest,
+  appViewPOP,
+  appApproveStudentReq,
+  appRejectStudentReq,
+  appPrintStudentInvoice,
   appOpenInvoiceModal,
   appSaveInvoice,
   appInvoiceStatus,
   appDeleteInvoice,
+  appSwitchTaskFilter,
   appOpenTaskModal,
+  appOpenTaskModalForEmp,
   appSaveTask,
   appToggleTask,
-  appTaskStatus,
   appDeleteTask,
   appClearAudit,
   appOpenAdminModal,
-  appSaveAdmin,
+  appEditAdminModal,
+  appSaveNewAdmin,
+  appSaveAdminPerms,
   appBlockAdmin,
-  appEditAdmin,
   appDeleteAdmin,
   appOpenStaffModal,
   appSaveStaff,
   appEditStaff,
   appDeleteStaff,
   appToggleControl,
+  appResetControls,
   appOpenNotificationsModal,
   appMarkAllNotificationsRead,
   appClearNotifications

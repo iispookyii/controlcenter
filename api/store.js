@@ -40,7 +40,8 @@ const SEED = {
   tasks: [],
   audit: [],
   notifications: [],
-  soaUploads: []  // Statement of Account uploads
+  soaUploads: [],  // Statement of Account uploads
+  studentRequests: [] // Student Invoices & Refund Requests with Proof of Payment
 };
 
 let memory = null;
