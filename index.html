@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Center — Sign In</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="login-shell" id="loginShell">
+  <div class="login-wrap">
+    <!-- Left: lamp illustration -->
+    <div class="login-left">
+      <div class="lamp">
+        <div class="lamp-cord"></div>
+        <div class="lamp-shade"></div>
+        <div class="lamp-arm"></div>
+        <div class="lamp-joint"></div>
+        <div class="lamp-stand"></div>
+        <div class="lamp-base"></div>
+        <div class="lamp-glow"></div>
+        <div class="lamp-drop"></div>
+      </div>
+      <h1>Control Center</h1>
+      <p>Office management system &bull; Sign in to your account</p>
+    </div>
+
+    <!-- Right: sign in form -->
+    <div class="login-right">
+      <div class="login-brand">Control Center</div>
+      <div class="login-sub">Sign in to continue to your office dashboard</div>
+
+      <form id="loginForm" class="login-form" novalidate>
+        <div class="login-field">
+          <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <input type="email" id="loginEmail" placeholder="Username or Email" required autocomplete="email">
+        </div>
+        <div class="login-field">
+          <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 7v9a2 2 0 002 2h16a2 2 0 002-2V7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <input type="password" id="loginPassword" placeholder="Password" required autocomplete="current-password">
+          <button type="button" id="togglePassword" class="login-toggle" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#6b838c;font-size:1rem;">Show</button>
+        </div>
+        <div class="login-actions">
+          <label class="login-remember">
+            <input type="checkbox" id="rememberMe"> Remember me
+          </label>
+          <a href="#" id="forgotLink">Forgot?</a>
+        </div>
+        <button type="submit" class="login-btn">Sign In &rarr;</button>
+      </form>
+
+      <div class="login-divider"><span>OR CONTINUE WITH</span></div>
+      <div class="login-social">
+        <button type="button"><span style="width:16px;height:16px;background:#4285f4;border-radius:3px;display:inline-block;margin-right:6px;"></span> Google</button>
+        <button type="button"><span style="width:18px;height:18px;background:#3b5998;border-radius:4px;display:inline-block;margin-right:6px;"></span> Apple</button>
+      </div>
+    </div>
+
+    <div class="login-footer">
+      <span id="loginError" style="color:#d32f2f;font-weight:700;font-size:0.78rem;display:none;margin-left:8px;"></span>
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
