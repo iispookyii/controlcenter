@@ -1,18 +1,18 @@
 /* ==========================================================================
    CONTROL CENTER — Data API (vouchers, cashflow, payroll, blogs, leaves,
-   overtime, tasks, invoices, audit)
+   overtime, tasks, invoices, audit, employees, soaUploads)
    Endpoints (require session cookie cc_sid):
      GET    /api/data/:collection   -> list
      POST   /api/data/:collection   -> create
      PUT    /api/data/:collection/:id  -> update
      DELETE /api/data/:collection/:id  -> delete
    Collections: vouchers, cashflow, payroll, blogs, invoices, leaves,
-   overtime, tasks, audit
+   overtime, tasks, audit, employees, soaUploads
    ========================================================================== */
 
 const { load, save } = require("./store");
 
-const ALLOWED = new Set(["vouchers","cashflow","payroll","blogs","invoices","leaves","overtime","tasks","audit"]);
+const ALLOWED = new Set(["vouchers","cashflow","payroll","blogs","invoices","leaves","overtime","tasks","audit","employees","soaUploads"]);
 
 function json(res, status, body) {
   res.statusCode = status;

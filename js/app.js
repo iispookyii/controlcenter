@@ -31,7 +31,8 @@ let state = {
   leaves: [],
   overtime: [],
   tasks: [],
-  notifications: []
+  notifications: [],
+  soaUploads: []
 };
 
 let currentUser = null;
@@ -53,7 +54,8 @@ async function init() {
     const overtime = await api.list("overtime") || [];
     const tasks = await api.list("tasks") || [];
     const notifications = await api.list("notifications") || [];
-    state = { users, sessions, audit, employees, vouchers, cashflow, payroll, blogs, invoices, leaves, overtime, tasks, notifications };
+    const soaUploads = await api.list("soaUploads") || [];
+    state = { users, sessions, audit, employees, vouchers, cashflow, payroll, blogs, invoices, leaves, overtime, tasks, notifications, soaUploads };
     loaded = true;
   } catch (e) {
     // API unreachable — use localStorage
@@ -207,13 +209,15 @@ function fmtMoney(n) { return "₱" + Number(n || 0).toLocaleString("en-PH", { m
 const MODULES = [
   { key: "dashboard", label: "Dashboard", icon: "&#128222;" },
   { key: "voucher", label: "Auto Voucher", icon: "&#128204;" },
-  { key: "cashflow", label: "Cash Flow", icon: "&#128173;" },
+  { key: "cashflow", label: "Cash Flow + SOA", icon: "&#128173;" },
   { key: "payroll", label: "Auto Payroll", icon: "&#128176;" },
   { key: "blogger", label: "Blogger", icon: "&#128221;" },
   { key: "leave", label: "Leave", icon: "&#128197;" },
   { key: "overtime", label: "Overtime", icon: "&#128198;" },
   { key: "invoice", label: "Invoices", icon: "&#128176;" },
   { key: "tasks", label: "Tasks", icon: "&#128205;" },
+  { key: "staff", label: "Staff Enrollment", icon: "&#128104;" },
+  { key: "controls", label: "Controls Checklist", icon: "&#9989;" },
   { key: "audit", label: "Audit Logs", icon: "&#128214;" },
 ];
 
@@ -274,6 +278,8 @@ function renderModule(key) {
   else if (key === "overtime") renderOvertime(content);
   else if (key === "invoice") renderInvoice(content);
   else if (key === "tasks") renderTasks(content);
+  else if (key === "staff") renderStaff(content);
+  else if (key === "controls") renderControls(content);
   else if (key === "audit") renderAudit(content);
   else if (key === "admin") renderAdmin(content);
 }
@@ -567,10 +573,14 @@ function renderCashFlow(el) {
   el.innerHTML = `
     <div class="module-header">
       <div>
-        <h2>Cash Flow Statement</h2>
-        <div class="sub">Money in vs money out for the office.</div>
+        <h2>Cash Flow + SOA</h2>
+        <div class="sub">Money in vs money out. Sync from vouchers and upload Statement of Account (SOA) PDF.</div>
       </div>
-      <button class="btn-sm teal" onclick="appAddCashFlow()">+ Entry</button>
+      <div class="card-actions">
+        <button class="btn-sm teal" onclick="appSyncVouchersToCashFlow()">Sync from Vouchers</button>
+        <button class="btn-sm" onclick="appOpenSOAUpload()">Upload SOA PDF</button>
+        <button class="btn-sm" onclick="appAddCashFlow()">+ Entry</button>
+      </div>
     </div>
 
     <div class="kpi-row">
@@ -600,6 +610,98 @@ function renderCashFlow(el) {
       <td>${escapeHtml(c.note)}</td>
     </tr>
   `).join("") || `<tr><td colspan="6" style="text-align:center;color:var(--ink-dim);padding:20px;">No entries</td></tr>`;
+}
+
+async function appSyncVouchersToCashFlow() {
+  if (!confirm("Create cash flow entries from all posted vouchers?")) return;
+  let added = 0;
+  state.vouchers.forEach(v => {
+    const already = state.cashflow.find(c => c.ref === v.ref && c.source === "voucher");
+    if (!already) {
+      state.cashflow.unshift({
+        id: "c" + Date.now() + Math.random().toString(36).slice(2,5),
+        date: v.date,
+        type: v.type === "income" ? "in" : "out",
+        category: v.type === "income" ? "Voucher Income" : "Voucher Expense",
+        amount: Number(v.amount),
+        ref: v.ref,
+        note: v.particular,
+        source: "voucher",
+        createdAt: nowIso()
+      });
+      added++;
+    }
+  });
+  audit("cashflow_sync", "vouchers", `${added} voucher(s) synced to cash flow`);
+  persist();
+  renderCashFlow($q("#appContent"));
+  notif(currentUser.id, `${added} voucher(s) synced to cash flow`, "cashflow");
+}
+
+async function appOpenSOAUpload() {
+  const mod = document.createElement("div");
+  mod.className = "modal-overlay";
+  mod.innerHTML = `
+    <div class="modal" style="max-width:540px;">
+      <div class="modal-header"><h3>Upload SOA (Statement of Account)</h3><button class="btn-close" onclick="this.closest('.modal-overlay').remove()">&times;</button></div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="field">
+            <label>SOA PDF File</label>
+            <input type="file" id="soaFile" accept=".pdf">
+          </div>
+          <div class="field">
+            <label>Description</label>
+            <input type="text" id="soaDesc" placeholder="e.g. November SOA">
+          </div>
+        </div>
+        <p class="hint">Upload PDF only. Max 10MB.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sm" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+        <button class="btn-sm teal" onclick="appSaveSOA()">Upload</button>
+      </div>
+    </div>
+  `;
+  $q("#modals").appendChild(mod);
+}
+
+async function appSaveSOA() {
+  const fileInput = $q("#soaFile");
+  const file = fileInput.files[0];
+  if (!file) { alert("Select a PDF file"); return; }
+  if (file.type !== "application/pdf") { alert("Only PDF files allowed"); return; }
+  if (file.size > 10 * 1024 * 1024) { alert("File too large (max 10MB)"); return; }
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const soa = {
+        id: "soa" + Date.now(),
+        fileName: file.name,
+        fileSize: (file.size / 1024 / 1024).toFixed(2) + " MB",
+        dataUrl: e.target.result,
+        uploadedBy: currentUser.email,
+        uploadedAt: new Date().toISOString(),
+        desc: $q("#soaDesc").value.trim()
+      };
+      await api.create("soaUploads", soa);
+      audit("soa_uploaded", soa.fileName, `SOA PDF uploaded (${soa.fileSize})`);
+      notif(currentUser.id, `SOA uploaded: ${soa.fileName}`, "cashflow");
+      $q(".modal-overlay").remove();
+      renderCashFlow($q("#appContent"));
+    } catch (errMsg) { alert(errMsg); }
+  };
+  reader.readAsDataURL(file);
+}
+
+function appDownloadSOA(id) {
+  const soa = state.soaUploads.find(s => s.id === id);
+  if (!soa) { alert("SOA not found"); return; }
+  const a = document.createElement("a");
+  a.href = soa.dataUrl;
+  a.download = soa.fileName;
+  a.click();
 }
 
 function appAddCashFlow() {
@@ -888,9 +990,10 @@ function renderQR(text, containerId) {
    MODULE: LEAVE (filing + balance tracker)
    ========================================================================== */
 function renderLeave(el) {
-  const myEmp = state.employees.find(e => e.email === currentUser.email) || state.employees[0];
-  const isPerm = myEmp.type === "permanent";
-  const pendingMy = state.leaves.filter(l => l.employeeId === myEmp.id && l.status === "pending").length;
+  const myEmp = state.employees.find(e => e.email === currentUser.email) || null;
+  const isEnrolled = !!myEmp;
+  const isPerm = myEmp ? myEmp.type === "permanent" : false;
+  const pendingMy = myEmp ? state.leaves.filter(l => l.employeeId === myEmp.id && l.status === "pending").length : 0;
 
   const adminCard = isAdmin() ? `
   <div class="card" style="margin-top:20px;">
@@ -908,9 +1011,9 @@ function renderLeave(el) {
     <div class="module-header">
       <div>
         <h2>Leave Filing</h2>
-        <div class="sub">Online leave filing. ${isPerm ? "Leave balance tracked for permanent employees." : "Contractual staff file online leave only."}</div>
+        <div class="sub">${isEnrolled ? (isPerm ? "Leave balance tracked for permanent employees." : "Contractual staff file online leave only.") : "You are not enrolled as staff. Ask the admin to enroll you before filing leave."}</div>
       </div>
-      <button class="btn-sm teal" onclick="appOpenLeaveModal()">+ File Leave</button>
+      ${isEnrolled ? `<button class="btn-sm teal" onclick="appOpenLeaveModal()">+ File Leave</button>` : `<button class="btn-sm" disabled style="opacity:0.5;">Enroll as staff first</button>`}
     </div>
 
     <div class="kpi-row">
@@ -970,7 +1073,8 @@ function renderLeave(el) {
 }
 
 function appOpenLeaveModal() {
-  const myEmp = state.employees.find(e => e.email === currentUser.email) || state.employees[0];
+  const myEmp = state.employees.find(e => e.email === currentUser.email);
+  if (!myEmp) { alert("You are not enrolled as staff. Ask the admin to enroll you first."); return; }
   const isPerm = myEmp.type === "permanent";
   const mod = document.createElement("div");
   mod.className = "modal-overlay";
@@ -1511,6 +1615,199 @@ async function appSaveAdmin() {
   $q(".modal-overlay").remove();
   renderAdmin($q("#appContent"));
   renderSidebar();
+}
+
+/* ==========================================================================
+   MODULE: STAFF ENROLLMENT (only enrolled staff can file leave)
+   ========================================================================== */
+function renderStaff(el) {
+  if (!isAdmin()) { el.innerHTML = "<div class='empty-state'><div class='empty-icon'>🔒</div><h3>Admin access required</h3><p>Only the main admin can enroll staff.</p></div>"; return; }
+  el.innerHTML = `
+    <div class="module-header">
+      <div>
+        <h2>Staff Enrollment</h2>
+        <div class="sub">Enroll staff into the system. Only enrolled staff can file leave.</div>
+      </div>
+      <button class="btn-sm teal" onclick="appOpenStaffModal()">+ Enroll Staff</button>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3>Enrolled Staff</h3></div>
+      <div class="card-body">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Status</th><th>Joined</th><th>Leave Balance</th><th>Actions</th></tr></thead>
+          <tbody id="staffList"></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  const t = $q("#staffList");
+  t.innerHTML = state.employees.map(emp => `
+    <tr>
+      <td>${escapeHtml(emp.name)}</td>
+      <td>${escapeHtml(emp.email)}</td>
+      <td><span class="badge badge-info" style="text-transform:none;">${escapeHtml(emp.type)}</span></td>
+      <td><span class="badge ${emp.status === 'Active' ? 'badge-bg' : 'badge-error'}">${escapeHtml(emp.status)}</span></td>
+      <td>${fmtDate(emp.joinDate)}</td>
+      <td>${emp.leaveBalance || 0} days</td>
+      <td>
+        ${emp.email === ADMIN_EMAIL ? "<span style='font-size:0.78rem;color:var(--ink-dim);'>owner</span>" : `
+          <button class="btn-sm" onclick="appEditStaff('${emp.id}')" style="padding:4px 8px;font-size:0.78rem;border-radius:6px;border:1px solid var(--line);">Edit</button>
+          <button class="btn-sm" onclick="appDeleteStaff('${emp.id}')" style="padding:4px 8px;font-size:0.78rem;border-radius:6px;border:1px solid var(--line);color:var(--error);border-color:var(--error);">Delete</button>
+        `}
+      </td>
+    </tr>
+  `).join("");
+}
+
+function appOpenStaffModal(empId) {
+  const existing = empId ? state.employees.find(e => e.id === empId) : null;
+  const mod = document.createElement("div");
+  mod.className = "modal-overlay";
+  mod.innerHTML = `
+    <div class="modal" style="max-width:540px;">
+      <div class="modal-header"><h3>${existing ? "Edit Staff" : "Enroll Staff"}</h3><button class="btn-close" onclick="this.closest('.modal-overlay').remove()">&times;</button></div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" id="staffName" value="${existing ? escapeHtml(existing.name) : ''}" placeholder="e.g. Angelina A. Aquino">
+          </div>
+          <div class="field">
+            <label>Email (Gmail)</label>
+            <input type="email" id="staffEmail" value="${existing ? escapeHtml(existing.email) : ''}" placeholder="email@gmail.com">
+          </div>
+          <div class="field">
+            <label>Staff Type</label>
+            <select id="staffType">${['staff','supervisor','manager','contractual'].map(t => `<option ${existing && existing.type === t ? 'selected' : ''}>${t}</option>`).join("")}</select>
+          </div>
+          <div class="field">
+            <label>Leave Balance (days)</label>
+            <input type="number" id="staffLeave" value="${existing ? existing.leaveBalance : 0}" min="0">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sm" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+        <button class="btn-sm teal" onclick="appSaveStaff('${existing ? existing.id : ''}')">Save</button>
+      </div>
+    </div>
+  `;
+  $q("#modals").appendChild(mod);
+}
+
+async function appSaveStaff(empId) {
+  const name = $q("#staffName").value.trim();
+  const email = $q("#staffEmail").value.trim();
+  const type = $q("#staffType").value;
+  const leaveBalance = Number($q("#staffLeave").value || 0);
+  if (!name || !email) { alert("Fill name and email"); return; }
+  if (!email.toLowerCase().endsWith("@gmail.com")) { alert("Staff email must be Gmail"); return; }
+  try {
+    if (empId) {
+      await api.update("employees", empId, { name, email, type, leaveBalance });
+    } else {
+      await api.create("employees", { name, email, type, status: "Active", joinDate: new Date().toISOString().split("T")[0], leaveBalance, enrolled: true });
+    }
+    audit("staff_" + (empId ? "edited" : "enrolled"), email, `${name} (${type})`);
+    notif(currentUser.id, `Staff ${empId ? 'updated' : 'enrolled'}: ${name}`, "staff");
+  } catch (errMsg) { alert(errMsg); return; }
+  $q(".modal-overlay").remove();
+  renderStaff($q("#appContent"));
+}
+
+async function appEditStaff(id) {
+  appOpenStaffModal(id);
+}
+
+async function appDeleteStaff(id) {
+  const emp = state.employees.find(e => e.id === id);
+  if (!emp) { alert("Staff not found"); return; }
+  if (emp.email === ADMIN_EMAIL) { alert("Cannot delete the main admin."); return; }
+  if (!confirm(`Remove staff ${emp.name}?`)) return;
+  try {
+    await api.remove("employees", id);
+    audit("staff_removed", emp.email, `removed staff ${emp.name}`);
+    notif(currentUser.id, `Staff removed: ${emp.name}`, "staff");
+  } catch (errMsg) { alert(errMsg); return; }
+  renderStaff($q("#appContent"));
+}
+
+/* ==========================================================================
+   MODULE: CONTROLS CHECKLIST
+   ========================================================================== */
+function renderControls(el) {
+  el.innerHTML = `
+    <div class="module-header">
+      <div>
+        <h2>Controls Checklist</h2>
+        <div class="sub">Tick the boxes for office controls and processes.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3>Office Controls</h3></div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
+            <input type="checkbox" id="ctrl1" onchange="appToggleControl('ctrl1')">
+            <label for="ctrl1" style="margin:0;font-weight:700;">Daily cash count completed</label>
+          </div>
+          <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
+            <input type="checkbox" id="ctrl2" onchange="appToggleControl('ctrl2')">
+            <label for="ctrl2" style="margin:0;font-weight:700;">Vouchers reviewed and approved</label>
+          </div>
+          <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
+            <input type="checkbox" id="ctrl3" onchange="appToggleControl('ctrl3')">
+            <label for="ctrl3" style="margin:0;font-weight:700;">Payroll verified</label>
+          </div>
+          <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
+            <input type="checkbox" id="ctrl4" onchange="appToggleControl('ctrl4')">
+            <label for="ctrl4" style="margin:0;font-weight:700;">SOA uploaded to Cash Flow</label>
+          </div>
+          <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
+            <input type="checkbox" id="ctrl5" onchange="appToggleControl('ctrl5')">
+            <label for="ctrl5" style="margin:0;font-weight:700;">Leave requests processed</label>
+          </div>
+          <div class="field" style="flex-direction:row;align-items:center;gap:10px;">
+            <input type="checkbox" id="ctrl6" onchange="appToggleControl('ctrl6')">
+            <label for="ctrl6" style="margin:0;font-weight:700;">Overtime claims reviewed</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <div class="card-header"><h3>Control Status</h3></div>
+      <div class="card-body">
+        <div id="controlsStatus" style="text-align:center;font-size:1.2rem;font-weight:800;color:var(--teal-dark);">0 / 6 controls completed</div>
+      </div>
+    </div>
+  `;
+  updateControlsStatus();
+}
+
+function appToggleControl(id) {
+  const el = $q("#" + id);
+  const key = "control_" + id;
+  const saved = lsLoad("controls", {});
+  saved[id] = el.checked;
+  lsSave("controls", saved);
+  updateControlsStatus();
+  audit("control_toggled", id, el.checked ? "checked" : "unchecked");
+}
+
+function updateControlsStatus() {
+  const saved = lsLoad("controls", {});
+  const ids = ["ctrl1","ctrl2","ctrl3","ctrl4","ctrl5","ctrl6"];
+  const done = ids.filter(i => saved[i] === true).length;
+  const el = $q("#controlsStatus");
+  if (el) el.textContent = done + " / 6 controls completed";
+  // restore checkboxes
+  ids.forEach(i => {
+    const cb = $q("#" + i);
+    if (cb) cb.checked = saved[i] === true;
+  });
 }
 
 /* ==========================================================================
