@@ -4,6 +4,7 @@
     { "src": "/api/auth(.*)", "dest": "/api/auth.js" },
     { "src": "/api/admins(.*)", "dest": "/api/admins.js" },
     { "src": "/api/data/(.*)", "dest": "/api/data.js" },
+    { "src": "/favicon.ico", "dest": "/favicon.svg" },
     { "src": "/", "dest": "/index.html" },
     { "src": "/(.*\\.(css|js|html|png|jpg|jpeg|svg|ico))", "dest": "/$1" },
     { "src": "/(.*)", "dest": "/dashboard.html" }

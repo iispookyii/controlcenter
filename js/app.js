@@ -2204,9 +2204,6 @@ async function initApp() {
     shellLogin();
     return;
   }
-    shellLogin();
-    return;
-  }
 
   // Dashboard page setup — only runs on dashboard.html
   if (!currentUser) {
