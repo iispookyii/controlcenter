@@ -2042,188 +2042,111 @@ window.addEventListener("hashchange", handleHashChange);
 async function initApp() {
   await init();
 
-  // 3D Neumorphic Teal Verification Page setup — runs on index.html
-  const codeForm = $q("#codeVerifyForm");
-  if (codeForm) {
+  // 3D Neumorphic Teal Google Authentication — runs on index.html
+  const googleForm = $q("#googleAuthForm");
+  if (googleForm) {
     if (currentUser) {
       window.location.href = "dashboard.html";
       return;
     }
 
-    const digitInputs = $all(".code-box-input", codeForm);
-    const feedback = $q("#authFeedback");
+    const hp = $q("#hp");
+    const recaptchaBox = $q("#recaptchaBox");
+    const recaptchaLabel = $q("#recaptchaLabel");
+    const recaptchaHint = $q("#recaptchaHint");
+    const btnGoogle = $q("#btnGoogleSignIn");
+    const btnText = $q("#btnText");
+    const authFeedback = $q("#authFeedback");
+    const btnAltAccount = $q("#btnAltAccount");
     const visualLock = $q("#visualLock");
     const visualDial = $q("#visualDial");
     const wellStatusTag = $q("#wellStatusTag");
-    const btnVerify = $q("#btnVerifyAccess");
-    const btnGoogle = $q("#btnGoogleAuth");
-    const btnResend = $q("#btnResendCode");
-    const timerDigits = $q("#timerDigits");
-    const toast = $q("#toastNotify");
-    const codeBoxesRow = $q("#codeBoxesRow");
-    const hp = $q("#hp");
+    let recaptchaChecked = false;
 
-    function showToast(msg) {
-      if (!toast) return;
-      toast.textContent = msg;
-      toast.classList.add("visible");
-      setTimeout(() => toast.classList.remove("visible"), 3200);
-    }
-
-    // Input box auto-advance and keyboard navigation
-    digitInputs.forEach((input, idx) => {
-      input.addEventListener("input", (e) => {
-        const val = e.target.value.replace(/[^0-9]/g, "");
-        e.target.value = val ? val[val.length - 1] : "";
-        if (e.target.value) {
-          e.target.classList.add("filled");
-          if (idx < digitInputs.length - 1) {
-            digitInputs[idx + 1].focus();
-          }
-        } else {
-          e.target.classList.remove("filled");
-        }
-      });
-
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Backspace" && !e.target.value && idx > 0) {
-          digitInputs[idx - 1].focus();
-          digitInputs[idx - 1].value = "";
-          digitInputs[idx - 1].classList.remove("filled");
-        } else if (e.key === "ArrowLeft" && idx > 0) {
-          digitInputs[idx - 1].focus();
-        } else if (e.key === "ArrowRight" && idx < digitInputs.length - 1) {
-          digitInputs[idx + 1].focus();
-        }
-      });
-
-      input.addEventListener("paste", (e) => {
-        e.preventDefault();
-        const text = (e.clipboardData || window.clipboardData).getData("text").replace(/[^0-9]/g, "");
-        if (!text) return;
-        const digits = text.slice(0, 6).split("");
-        digits.forEach((d, i) => {
-          if (digitInputs[i]) {
-            digitInputs[i].value = d;
-            digitInputs[i].classList.add("filled");
-          }
-        });
-        const nextIdx = Math.min(digits.length, digitInputs.length - 1);
-        digitInputs[nextIdx].focus();
-      });
-    });
-
-    // Countdown timer (02:00 -> 00:00)
-    let secondsLeft = 120;
-    let timerInterval = setInterval(() => {
-      secondsLeft--;
-      if (secondsLeft < 0) {
-        clearInterval(timerInterval);
-        if (timerDigits) timerDigits.textContent = "00:00";
-        if (feedback) {
-          feedback.textContent = "Code expired. Please click RESEND CODE.";
-          feedback.className = "auth-feedback-status error";
-        }
-        return;
+    const toggleRecaptcha = () => {
+      recaptchaChecked = !recaptchaChecked;
+      if (recaptchaBox) {
+        recaptchaBox.classList.toggle("checked", recaptchaChecked);
+        recaptchaBox.setAttribute("aria-checked", recaptchaChecked ? "true" : "false");
       }
-      const m = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
-      const s = String(secondsLeft % 60).padStart(2, "0");
-      if (timerDigits) timerDigits.textContent = `${m}:${s}`;
-    }, 1000);
+      if (recaptchaHint) recaptchaHint.style.display = "none";
+      if (authFeedback && authFeedback.classList.contains("error")) {
+        authFeedback.textContent = "Protected by secure verification";
+        authFeedback.className = "auth-feedback-status";
+      }
+    };
 
-    // Resend Code handler
-    if (btnResend) {
-      btnResend.onclick = (e) => {
-        e.preventDefault();
-        secondsLeft = 120;
-        digitInputs.forEach(inp => { inp.value = ""; inp.classList.remove("filled"); });
-        if (digitInputs[0]) digitInputs[0].focus();
-        if (feedback) {
-          feedback.textContent = "Protected by secure verification";
-          feedback.className = "auth-feedback-status";
-        }
-        showToast("New 6-digit verification code sent to dcchamie25@gmail.com");
-      };
+    if (recaptchaBox) {
+      recaptchaBox.onclick = toggleRecaptcha;
+      recaptchaBox.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleRecaptcha(); } };
+    }
+    if (recaptchaLabel) {
+      recaptchaLabel.onclick = toggleRecaptcha;
     }
 
-    // Success transition animation & login execution
-    async function triggerVerificationSuccess(emailToUse = ADMIN_EMAIL) {
+    async function executeGoogleLogin(emailToUse = ADMIN_EMAIL) {
       try {
-        // Visual transition: 3D Lock -> 3D Checkmark Dial (Image 1)
+        if (btnGoogle) btnGoogle.disabled = true;
+        if (btnText) btnText.textContent = "Signing in...";
+        if (authFeedback) {
+          authFeedback.textContent = "Verifying Google credentials...";
+          authFeedback.className = "auth-feedback-status";
+        }
+
+        const user = await login(emailToUse, "google-oauth");
+        sessionStorage.setItem("cc_user", user.id);
+
+        // Visual transition: 3D Lock turns into 3D Green Checkmark Dial!
         if (visualLock) visualLock.style.display = "none";
         if (visualDial) visualDial.style.display = "flex";
-        if (feedback) {
-          feedback.textContent = "✓ Access verified successfully";
-          feedback.className = "auth-feedback-status success";
-        }
         if (wellStatusTag) {
           wellStatusTag.innerHTML = `<span class="status-green-dot"></span> Access Authorized`;
         }
-        if (btnVerify) {
-          btnVerify.textContent = "ACCESS GRANTED ✓";
-          btnVerify.classList.add("verified-btn");
-          btnVerify.disabled = true;
+        if (btnText) btnText.textContent = "ACCESS VERIFIED ✓";
+        if (btnGoogle) btnGoogle.classList.add("verified-btn");
+        if (authFeedback) {
+          authFeedback.textContent = "✓ Access verified successfully";
+          authFeedback.className = "auth-feedback-status success";
         }
-        if (btnGoogle) btnGoogle.disabled = true;
-
-        const user = await login(emailToUse, "2fa-verified");
-        sessionStorage.setItem("cc_user", user.id);
 
         setTimeout(() => {
           window.location.href = "dashboard.html";
         }, 1100);
       } catch (err) {
-        if (feedback) {
-          feedback.textContent = typeof err === "string" ? err : (err && err.message ? err.message : "Verification failed. Please check your credentials.");
-          feedback.className = "auth-feedback-status error";
+        if (btnGoogle) {
+          btnGoogle.disabled = false;
+          btnGoogle.classList.remove("verified-btn");
         }
+        if (btnText) btnText.textContent = "Sign in with Google";
         if (visualLock) visualLock.style.display = "flex";
         if (visualDial) visualDial.style.display = "none";
-        if (btnVerify) {
-          btnVerify.textContent = "VERIFY ACCESS";
-          btnVerify.classList.remove("verified-btn");
-          btnVerify.disabled = false;
+        if (authFeedback) {
+          authFeedback.textContent = typeof err === "string" ? err : (err && err.message ? err.message : "Access denied.");
+          authFeedback.className = "auth-feedback-status error";
         }
-        if (btnGoogle) btnGoogle.disabled = false;
       }
     }
 
-    // Form submit / Verify Access button
-    codeForm.onsubmit = async (e) => {
+    googleForm.onsubmit = async (e) => {
       e.preventDefault();
-      if (hp && hp.value.trim() !== "") return; // honeypot caught
+      if (hp && hp.value.trim() !== "") return; // Honeypot triggered
 
-      const enteredCode = digitInputs.map(inp => inp.value.trim()).join("");
-      if (enteredCode.length < 6) {
-        if (codeBoxesRow) {
-          codeBoxesRow.classList.add("shake-error");
-          setTimeout(() => codeBoxesRow.classList.remove("shake-error"), 450);
-        }
-        if (feedback) {
-          feedback.textContent = "Please enter the full 6-digit verification code.";
-          feedback.className = "auth-feedback-status error";
-        }
-        const firstEmpty = digitInputs.find(inp => !inp.value.trim());
-        if (firstEmpty) firstEmpty.focus();
+      if (!recaptchaChecked) {
+        if (recaptchaHint) recaptchaHint.style.display = "block";
         return;
       }
 
-      await triggerVerificationSuccess(ADMIN_EMAIL);
+      await executeGoogleLogin(ADMIN_EMAIL);
     };
 
-    // Google Sign-In Action: realistic auto-type digits and verify
-    if (btnGoogle) {
-      btnGoogle.onclick = async () => {
-        const autoDigits = ["2", "5", "0", "8", "9", "1"];
-        digitInputs.forEach(inp => { inp.value = ""; inp.classList.remove("filled"); });
-        for (let i = 0; i < autoDigits.length; i++) {
-          await new Promise(r => setTimeout(r, 65));
-          if (digitInputs[i]) {
-            digitInputs[i].value = autoDigits[i];
-            digitInputs[i].classList.add("filled");
-          }
+    if (btnAltAccount) {
+      btnAltAccount.onclick = async () => {
+        const customEmail = prompt("Sign in with Google\nEnter your Gmail address:", "");
+        if (!customEmail) return;
+        if (!recaptchaChecked) {
+          toggleRecaptcha();
         }
-        await triggerVerificationSuccess(ADMIN_EMAIL);
+        await executeGoogleLogin(customEmail.trim());
       };
     }
 
@@ -2278,6 +2201,9 @@ async function initApp() {
     };
 
     if (currentUser) { window.location.href = "dashboard.html"; return; }
+    shellLogin();
+    return;
+  }
     shellLogin();
     return;
   }
