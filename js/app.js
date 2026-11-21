@@ -2035,80 +2035,91 @@ window.addEventListener("hashchange", handleHashChange);
 
 async function initApp() {
   await init();
-  const form = $q("#loginForm");
-  const err = $q("#loginError");
-  const hp = $q("#hp");
-  const recaptchaBox = $q("#recaptchaBox");
-  const recaptchaHint = $q("#recaptchaHint");
-  let recaptchaChecked = false;
 
-  // reCAPTCHA toggle (simulated v2 checkbox)
-  recaptchaBox.onclick = () => {
-    recaptchaChecked = !recaptchaChecked;
-    recaptchaBox.classList.toggle("checked", recaptchaChecked);
-    recaptchaBox.setAttribute("aria-checked", recaptchaChecked ? "true" : "false");
-    recaptchaHint.style.display = "none";
-    err.style.display = "none";
-  };
-  recaptchaBox.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); recaptchaBox.click(); } };
+  // Login page setup — only runs on index.html
+  const loginForm = $q("#loginForm");
+  if (loginForm) {
+    const err = $q("#loginError");
+    const hp = $q("#hp");
+    const recaptchaBox = $q("#recaptchaBox");
+    const recaptchaHint = $q("#recaptchaHint");
+    let recaptchaChecked = false;
 
-  form.onsubmit = async (e) => {
-    e.preventDefault();
-    err.style.display = "none";
-    recaptchaHint.style.display = "none";
+    recaptchaBox.onclick = () => {
+      recaptchaChecked = !recaptchaChecked;
+      recaptchaBox.classList.toggle("checked", recaptchaChecked);
+      recaptchaBox.setAttribute("aria-checked", recaptchaChecked ? "true" : "false");
+      recaptchaHint.style.display = "none";
+      err.style.display = "none";
+    };
+    recaptchaBox.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); recaptchaBox.click(); } };
 
-    // Honeypot must be empty (bots fill it)
-    if (hp.value.trim() !== "") { return; }
+    loginForm.onsubmit = async (e) => {
+      e.preventDefault();
+      err.style.display = "none";
+      recaptchaHint.style.display = "none";
 
-    // reCAPTCHA required
-    if (!recaptchaChecked) {
-      recaptchaHint.style.display = "block";
-      return;
-    }
+      if (hp.value.trim() !== "") { return; }
 
-    // Google login only (api.login enforces Gmail + main-admin restriction)
-    const email = prompt("Sign in with Google\nEnter your Gmail address:", "dcchamie25@gmail.com");
-    if (!email) return;
+      if (!recaptchaChecked) {
+        recaptchaHint.style.display = "block";
+        return;
+      }
 
-    try {
-      const user = await login(email, "google-oauth");
-      sessionStorage.setItem("cc_user", user.id);
-      shellDashboard();
-    } catch (errMsg) {
-      err.textContent = errMsg;
-      err.style.display = "block";
-    }
-  };
+      const email = prompt("Sign in with Google\nEnter your Gmail address:", "dcchamie25@gmail.com");
+      if (!email) return;
 
-  // Already logged in?
-  if (currentUser) { shellDashboard(); return; }
-  shellLogin();
+      try {
+        const user = await login(email, "google-oauth");
+        sessionStorage.setItem("cc_user", user.id);
+        shellDashboard();
+      } catch (errMsg) {
+        err.textContent = errMsg;
+        err.style.display = "block";
+      }
+    };
+
+    if (currentUser) { shellDashboard(); return; }
+    shellLogin();
+    return;
+  }
+
+  // Dashboard page setup — only runs on dashboard.html
+  shellDashboard();
 
   // Sidebar toggle
-  $q("#openSidebar").onclick = openSidebar;
-  $q("#appShell").onclick = (e) => { if (e.target === $q("#appShell")) closeSidebar(); };
+  const openSidebarBtn = $q("#openSidebar");
+  if (openSidebarBtn) openSidebarBtn.onclick = openSidebar;
+  const appShell = $q("#appShell");
+  if (appShell) appShell.onclick = (e) => { if (e.target === appShell) closeSidebar(); };
 
   // Global search
-  $q("#globalSearch").addEventListener("input", (e) => {
-    const q = e.target.value.toLowerCase();
-    const cards = $all(".card");
-    cards.forEach(c => {
-      const text = c.textContent.toLowerCase();
-      c.style.display = text.includes(q) ? "" : "none";
+  const globalSearch = $q("#globalSearch");
+  if (globalSearch) {
+    globalSearch.addEventListener("input", (e) => {
+      const q = e.target.value.toLowerCase();
+      const cards = $all(".card");
+      cards.forEach(c => {
+        const text = c.textContent.toLowerCase();
+        c.style.display = text.includes(q) ? "" : "none";
+      });
     });
-  });
+  }
 
   // Quick add
-  $q("#quickAddBtn").onclick = () => {
-    const m = $q("#pageTitle").textContent.toLowerCase();
-    if (m.includes("voucher")) appPostVoucher;
-    else if (m.includes("blogger")) appOpenBlogModal();
-    else if (m.includes("leave")) appOpenLeaveModal();
-    else if (m.includes("overtime")) appOpenOTModal();
-    else if (m.includes("invoice")) appOpenInvoiceModal();
-    else if (m.includes("tasks")) appOpenTaskModal();
-    else alert("Quick add opens the create form for the current module.");
-  };
+  const quickAddBtn = $q("#quickAddBtn");
+  if (quickAddBtn) {
+    quickAddBtn.onclick = () => {
+      const m = $q("#pageTitle").textContent.toLowerCase();
+      if (m.includes("voucher")) appPostVoucher;
+      else if (m.includes("blogger")) appOpenBlogModal();
+      else if (m.includes("leave")) appOpenLeaveModal();
+      else if (m.includes("overtime")) appOpenOTModal();
+      else if (m.includes("invoice")) appOpenInvoiceModal();
+      else if (m.includes("tasks")) appOpenTaskModal();
+      else alert("Quick add opens the create form for the current module.");
+    };
+  }
 }
 
 // expose for onclick in HTML
