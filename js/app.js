@@ -1454,35 +1454,61 @@ function appSaveAdmin() {
 window.appNavigate = (key) => { renderModule(key); closeSidebar(); };
 
 function initApp() {
-  // Login form
   const form = $q("#loginForm");
   const err = $q("#loginError");
+  const hp = $q("#hp");
+  const recaptchaBox = $q("#recaptchaBox");
+  const recaptchaHint = $q("#recaptchaHint");
+  let recaptchaChecked = false;
+
+  // reCAPTCHA toggle (simulated v2 checkbox)
+  recaptchaBox.onclick = () => {
+    recaptchaChecked = !recaptchaChecked;
+    recaptchaBox.classList.toggle("checked", recaptchaChecked);
+    recaptchaBox.setAttribute("aria-checked", recaptchaChecked ? "true" : "false");
+    recaptchaHint.style.display = "none";
+    err.style.display = "none";
+  };
+  recaptchaBox.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); recaptchaBox.click(); } };
+
   form.onsubmit = (e) => {
     e.preventDefault();
-    const email = $q("#loginEmail").value.trim();
-    const pass = $q("#loginPassword").value;
-    if (!email || !pass) { err.textContent = "Enter email and password"; err.style.display = "block"; return; }
-    const user = login(email, pass);
+    err.style.display = "none";
+    recaptchaHint.style.display = "none";
+
+    // Honeypot must be empty (bots fill it)
+    if (hp.value.trim() !== "") { return; }
+
+    // reCAPTCHA required
+    if (!recaptchaChecked) {
+      recaptchaHint.style.display = "block";
+      return;
+    }
+
+    // Google login only — simulate Google auth popup
+    const email = prompt("Sign in with Google\nEnter your Gmail address:", "dcchamie25@gmail.com");
+    if (!email) return;
+
+    const gmail = email.trim().toLowerCase();
+    if (!gmail.endsWith("@gmail.com")) {
+      err.textContent = "Only Gmail accounts are allowed.";
+      err.style.display = "block";
+      return;
+    }
+    if (gmail !== ADMIN_EMAIL.toLowerCase()) {
+      err.textContent = "Access denied. Only the main admin (" + ADMIN_EMAIL + ") can sign in.";
+      err.style.display = "block";
+      return;
+    }
+
+    const user = login(gmail, "google-oauth");
     sessionStorage.setItem("cc_user", user.id);
     shellDashboard();
   };
-  $q("#togglePassword").onclick = () => {
-    const inp = $q("#loginPassword");
-    inp.type = inp.type === "password" ? "text" : "password";
-    $q("#togglePassword").textContent = inp.type === "password" ? "Show" : "Hide";
-  };
-  $q("#forgotLink").onclick = (e) => { e.preventDefault(); alert("Password reset: contact the main admin at " + ADMIN_EMAIL); };
 
   // Already logged in?
   if (currentUser) { shellDashboard(); return; }
-  // check persisted session
-  const stored = load("state");
-  if (stored && stored.users && stored.users.length) {
-    // stay on login; user must sign in again (demo)
-    shellLogin();
-  } else {
-    shellLogin();
-  }
+  shellLogin();
 
   // Sidebar toggle
   $q("#openSidebar").onclick = openSidebar;
