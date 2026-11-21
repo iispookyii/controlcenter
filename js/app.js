@@ -1,44 +1,69 @@
 /* ==========================================================================
    CONTROL CENTER — Office Management System
-   Single-file prototype: teal theme, lamp login, localStorage persistence
+   Teal theme, lamp login, backend API with localStorage fallback
    Main admin: dcchamie25@gmail.com
    ========================================================================== */
+
+import { api } from "./apiClient.js";
 
 const ADMIN_EMAIL = "dcchamie25@gmail.com";
 const STORAGE_PREFIX = "cc_";
 
-/* ---------------- Storage helpers ---------------- */
+/* ---------------- Storage helpers (localStorage fallback) ---------------- */
 function $id(key) { return STORAGE_PREFIX + key; }
-function load(key, def) {
+function lsLoad(key, def) {
   try { const raw = localStorage.getItem($id(key)); return raw === null ? def : JSON.parse(raw); }
   catch (e) { return def; }
 }
-function save(key, value) { localStorage.setItem($id(key), JSON.stringify(value)); }
+function lsSave(key, value) { try { localStorage.setItem($id(key), JSON.stringify(value)); } catch (e) {} }
 
-/* ---------------- State ---------------- */
+/* ---------------- State (synced with API / localStorage) ---------------- */
 let state = {
-  users: [],               // {id, email, name, role, createdAt}
-  sessions: [],            // {id, userId, email, loginAt, ip}
-  audit: [],               // {id, userId, email, action, target, meta, at}
-  employees: [],           // {id, name, email, type: permanent|contractual, status, joinDate, salary, leaveBalance}
-  vouchers: [],            // {id, ref, date, payee, particular, amount, type, status, createdBy, createdAt}
-  cashflow: [],            // {id, date, type: in|out, category, amount, ref, note}
-  payroll: [],             // {id, period, employeeId, gross, deductions, net, status, paidAt}
-  blogs: [],               // {id, title, slug, content, status, createdAt, url}
-  invoices: [],            // {id, ref, client, date, due, amount, status, items}
-  leaves: [],              // {id, employeeId, type, from, to, days, reason, status, createdAt, approvedBy}
-  overtime: [],            // {id, employeeId, date, hours, type: ot|offset, status, reason, createdAt}
-  tasks: [],               // {id, employeeId, title, status, due, progress, createdAt}
-  notifications: []        // {id, userId, text, read, at, link}
+  users: [],
+  sessions: [],
+  audit: [],
+  employees: [],
+  vouchers: [],
+  cashflow: [],
+  payroll: [],
+  blogs: [],
+  invoices: [],
+  leaves: [],
+  overtime: [],
+  tasks: [],
+  notifications: []
 };
 
 let currentUser = null;
 
-function init() {
-  const s = load("state");
-  if (s) state = s;
+async function init() {
+  // Try loading full state from API first
+  let loaded = false;
+  try {
+    const users = await api.list("users") || [];
+    const sessions = await api.list("sessions") || [];
+    const audit = await api.list("audit") || [];
+    const employees = await api.list("employees") || [];
+    const vouchers = await api.list("vouchers") || [];
+    const cashflow = await api.list("cashflow") || [];
+    const payroll = await api.list("payroll") || [];
+    const blogs = await api.list("blogs") || [];
+    const invoices = await api.list("invoices") || [];
+    const leaves = await api.list("leaves") || [];
+    const overtime = await api.list("overtime") || [];
+    const tasks = await api.list("tasks") || [];
+    const notifications = await api.list("notifications") || [];
+    state = { users, sessions, audit, employees, vouchers, cashflow, payroll, blogs, invoices, leaves, overtime, tasks, notifications };
+    loaded = true;
+  } catch (e) {
+    // API unreachable — use localStorage
+    const s = lsLoad("state");
+    if (s) state = s;
+    loaded = false;
+  }
   seedIfEmpty();
   persist();
+  return loaded;
 }
 
 function seedIfEmpty() {
@@ -79,7 +104,10 @@ function seedIfEmpty() {
   }
 }
 
-function persist() { save("state", state); }
+function persist() {
+  // Save to localStorage always (fast, works offline)
+  lsSave("state", state);
+}
 
 function nowIso() { return new Date().toISOString(); }
 
@@ -113,22 +141,10 @@ function renderNotifBadge() {
 }
 
 /* ---------------- Auth ---------------- */
-function login(email, password) {
-  // Demo auth: any password works; register session
-  let user = state.users.find(u => u.email.toLowerCase() === email.toLowerCase());
-  if (!user) {
-    // auto-create first-time user as staff (not admin unless main admin)
-    const isMain = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-    user = {
-      id: "u" + (Date.now()),
-      email,
-      name: email.split("@")[0],
-      role: isMain ? "admin" : "staff",
-      createdAt: nowIso()
-    };
-    state.users.push(user);
-    audit("user_created", user.email, "Auto-registered on first login");
-  }
+async function login(email, password) {
+  // Google-only login via API (with localStorage fallback)
+  const result = await api.login(email);
+  const user = result.user;
   currentUser = user;
   const sess = { id: "s" + Date.now(), userId: user.id, email: user.email, loginAt: nowIso(), ip: "127.0.0.1" };
   state.sessions.push(sess);
@@ -137,11 +153,11 @@ function login(email, password) {
   return user;
 }
 
-function logout() {
+async function logout() {
   if (currentUser) audit("logout", currentUser.email, "Signed out");
+  await api.logout();
   currentUser = null;
-  localStorage.removeItem($id("state"));
-  // keep state but clear current user marker via sessionStorage
+  lsSave($id("state"), state);
   sessionStorage.removeItem("cc_user");
   shellLogin();
 }
@@ -381,7 +397,7 @@ function renderVoucher(el) {
   const today = new Date().toISOString().split("T")[0];
 
   // load draft
-  const draft = load("voucher_draft");
+  const draft = lsLoad("voucher_draft");
   if (draft) voucherDraft = draft;
   else voucherDraft = { ref, date: today, payee: "", particular: "", amount: "", type: "expense", status: "draft" };
 
@@ -466,7 +482,7 @@ function appAutoSaveVoucher() {
     amount: $q("#vAmount").value,
     status: "draft"
   };
-  save("voucher_draft", voucherDraft);
+  lsSave("voucher_draft", voucherDraft);
   showVoucherMsg("Auto-saved draft ✓");
 }
 
@@ -486,7 +502,7 @@ function appClearVoucher() {
   if (!confirm("Clear the draft voucher?")) return;
   const ref = "V-" + new Date().getFullYear() + "-" + String(state.vouchers.length + 1).padStart(4, "0");
   voucherDraft = { ref, date: new Date().toISOString().split("T")[0], payee: "", particular: "", amount: "", type: "expense", status: "draft" };
-  save("voucher_draft", voucherDraft);
+  lsSave("voucher_draft", voucherDraft);
   renderVoucher($q("#appContent"));
   showVoucherMsg("New draft started");
 }
@@ -518,7 +534,7 @@ function appPostVoucher() {
     ref: entry.ref,
     note: d.particular
   });
-  save("voucher_draft", null);
+  lsSave("voucher_draft", null);
   voucherDraft = null;
   persist();
   renderVoucher($q("#appContent"));
@@ -1378,32 +1394,78 @@ function renderAdmin(el) {
     <div class="module-header">
       <div>
         <h2>Admin Controls</h2>
-        <div class="sub">Add and manage admins. Main admin: ${ADMIN_EMAIL}</div>
+        <div class="sub">Add, edit, block or delete admins. Main admin: ${ADMIN_EMAIL}</div>
       </div>
       <button class="btn-sm teal" onclick="appOpenAdminModal()">+ Add Admin</button>
     </div>
 
     <div class="card">
-      <div class="card-header"><h3>Registered Users</h3></div>
+      <div class="card-header"><h3>Registered Admins</h3></div>
       <div class="card-body">
         <table>
-          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Main Admin?</th></tr></thead>
+          <thead><tr><th>Name</th><th>Email</th><th>Status</th><th>Joined</th><th>Main Admin?</th><th>Actions</th></tr></thead>
           <tbody id="adminList"></tbody>
         </table>
       </div>
     </div>
   `;
   const t = $q("#adminList");
-  t.innerHTML = state.users.map(u => {
-    const main = u.email === ADMIN_EMAIL;
+  const admins = state.admins.length ? state.admins : state.users.filter(u => u.role === "admin");
+  t.innerHTML = admins.map(a => {
+    const main = a.email === ADMIN_EMAIL;
+    const blocked = a.status === "blocked";
     return `<tr>
-      <td>${escapeHtml(u.name)}</td>
-      <td>${escapeHtml(u.email)}</td>
-      <td><span class="badge ${u.role==='admin'?'badge-success':'badge-info'}">${escapeHtml(u.role)}</span></td>
-      <td>${fmtDate(u.createdAt)}</td>
+      <td>${escapeHtml(a.name)}</td>
+      <td>${escapeHtml(a.email)}</td>
+      <td><span class="badge ${blocked ? 'badge-error' : 'badge-bg'}" style="text-transform:none;">${blocked ? "Blocked" : (a.status === 'active' ? "Active" : a.status)}</span></td>
+      <td>${fmtDate(a.createdAt)}</td>
       <td>${main ? "Yes (owner)" : "No"}</td>
+      <td>
+        ${main ? "<span style='font-size:0.78rem;color:var(--ink-dim);'>owner</span>" : `
+          <button class="btn-sm" onclick="appBlockAdmin('${a.id}', ${!blocked})" style="padding:4px 8px;font-size:0.78rem;border-radius:6px;border:1px solid var(--line);">${blocked ? "Unblock" : "Block"}</button>
+          <button class="btn-sm" onclick="appEditAdmin('${a.id}')" style="padding:4px 8px;font-size:0.78rem;border-radius:6px;border:1px solid var(--line);">Edit</button>
+          <button class="btn-sm" onclick="appDeleteAdmin('${a.id}')" style="padding:4px 8px;font-size:0.78rem;border-radius:6px;border:1px solid var(--line);color:var(--error);border-color:var(--error);">Delete</button>
+        `}
+      </td>
     </tr>`;
   }).join("");
+}
+
+async function appBlockAdmin(id, blocked) {
+  try {
+    const admin = await api.blockAdmin(id, blocked);
+    audit(admin.status === "blocked" ? "admin_blocked" : "admin_unblocked", admin.email, `${admin.name} ${blocked ? "blocked" : "unblocked"}`);
+    notif(currentUser.id, `Admin ${admin.name} ${blocked ? "blocked" : "unblocked"}`, "admin");
+  } catch (errMsg) { alert(errMsg); return; }
+  renderAdmin($q("#appContent"));
+}
+
+async function appEditAdmin(id) {
+  const admin = state.admins.find(a => a.id === id) || state.users.find(u => u.id === id);
+  if (!admin) { alert("Admin not found"); return; }
+  const name = prompt("Edit admin name:", admin.name);
+  if (!name) return;
+  const email = prompt("Edit admin email:", admin.email);
+  if (!email) return;
+  try {
+    await api.editAdmin(id, { name, email });
+    audit("admin_edited", email, `edited admin ${name}`);
+    notif(currentUser.id, `Admin updated: ${name}`, "admin");
+  } catch (errMsg) { alert(errMsg); return; }
+  renderAdmin($q("#appContent"));
+}
+
+async function appDeleteAdmin(id) {
+  const admin = state.admins.find(a => a.id === id) || state.users.find(u => u.id === id);
+  if (!admin) { alert("Admin not found"); return; }
+  if (admin.email === ADMIN_EMAIL) { alert("Cannot delete the main admin owner."); return; }
+  if (!confirm(`Delete admin ${admin.name} (${admin.email})?`)) return;
+  try {
+    await api.deleteAdmin(id);
+    audit("admin_deleted", admin.email, `deleted admin ${admin.name}`);
+    notif(currentUser.id, `Admin deleted: ${admin.name}`, "admin");
+  } catch (errMsg) { alert(errMsg); return; }
+  renderAdmin($q("#appContent"));
 }
 
 function appOpenAdminModal() {
@@ -1434,18 +1496,21 @@ function appOpenAdminModal() {
   $q("#modals").appendChild(mod);
 }
 
-function appSaveAdmin() {
+async function appSaveAdmin() {
   const name = $q("#admName").value.trim();
   const email = $q("#admEmail").value.trim();
   if (!name || !email) { alert("Fill name and email"); return; }
-  if (state.users.find(u => u.email.toLowerCase() === email.toLowerCase())) { alert("Email already registered"); return; }
-  state.users.push({ id: "u" + Date.now(), email, name, role: "admin", createdAt: nowIso() });
-  audit("admin_added", email, `${name} added as admin`);
-  persist();
+  try {
+    const admin = await api.addAdmin(email, name);
+    audit("admin_added", admin.email, `${admin.name} added as admin`);
+    notif(currentUser.id, `New admin added: ${admin.name}`, "admin");
+  } catch (errMsg) {
+    alert(errMsg);
+    return;
+  }
   $q(".modal-overlay").remove();
   renderAdmin($q("#appContent"));
   renderSidebar();
-  notif(currentUser.id, `New admin added: ${name}`, "admin");
 }
 
 /* ==========================================================================
@@ -1453,7 +1518,8 @@ function appSaveAdmin() {
    ========================================================================== */
 window.appNavigate = (key) => { renderModule(key); closeSidebar(); };
 
-function initApp() {
+async function initApp() {
+  await init();
   const form = $q("#loginForm");
   const err = $q("#loginError");
   const hp = $q("#hp");
@@ -1471,7 +1537,7 @@ function initApp() {
   };
   recaptchaBox.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); recaptchaBox.click(); } };
 
-  form.onsubmit = (e) => {
+  form.onsubmit = async (e) => {
     e.preventDefault();
     err.style.display = "none";
     recaptchaHint.style.display = "none";
@@ -1485,25 +1551,18 @@ function initApp() {
       return;
     }
 
-    // Google login only — simulate Google auth popup
+    // Google login only (api.login enforces Gmail + main-admin restriction)
     const email = prompt("Sign in with Google\nEnter your Gmail address:", "dcchamie25@gmail.com");
     if (!email) return;
 
-    const gmail = email.trim().toLowerCase();
-    if (!gmail.endsWith("@gmail.com")) {
-      err.textContent = "Only Gmail accounts are allowed.";
+    try {
+      const user = await login(email, "google-oauth");
+      sessionStorage.setItem("cc_user", user.id);
+      shellDashboard();
+    } catch (errMsg) {
+      err.textContent = errMsg;
       err.style.display = "block";
-      return;
     }
-    if (gmail !== ADMIN_EMAIL.toLowerCase()) {
-      err.textContent = "Access denied. Only the main admin (" + ADMIN_EMAIL + ") can sign in.";
-      err.style.display = "block";
-      return;
-    }
-
-    const user = login(gmail, "google-oauth");
-    sessionStorage.setItem("cc_user", user.id);
-    shellDashboard();
   };
 
   // Already logged in?
@@ -1540,4 +1599,4 @@ function initApp() {
 // expose for onclick in HTML
 window.appNavigate = window.appNavigate || ((k)=>{renderModule(k);closeSidebar();});
 
-init();
+initApp().catch(e => { console.error("initApp error", e); shellLogin(); });
