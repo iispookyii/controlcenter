@@ -9,38 +9,18 @@
 <body>
 
 <div class="login-shell" id="loginShell">
-  <!-- Section 1: Lamp hero (first thing you see) -->
-  <div class="lamp-hero">
-    <div class="lamp-hero-inner">
-      <div class="lamp">
-        <div class="lamp-cord"></div>
-        <div class="lamp-shade"></div>
-        <div class="lamp-arm"></div>
-        <div class="lamp-joint"></div>
-        <div class="lamp-stand"></div>
-        <div class="lamp-base"></div>
-        <div class="lamp-glow"></div>
-        <div class="lamp-drop"></div>
-      </div>
-      <div class="lamp-hero-text">
-        <h1>Control Center</h1>
-        <p>Office management system</p>
-      </div>
-      <div class="lamp-hero-hint">
-        Sign in with Google to continue
-      </div>
-    </div>
-  </div>
-
-  <!-- Section 2: Google login card -->
+  <!-- Professional teal login card -->
   <div class="login-card">
     <div class="login-card-body">
-      <div class="login-brand">Control Center</div>
-      <div class="login-sub">Sign in with your office Google account</div>
+      <div class="login-brand">
+        <div class="brand-icon">🏢</div>
+        <div>Control Center<br><small>Main Office</small></div>
+      </div>
+
+      <div class="login-sub">Sign in with your office Google account to continue</div>
 
       <div class="google-note">
-        <span style="font-weight:800;color:var(--teal-dark);">Gmail only</span>
-        &bull; Admin access: <span style="font-weight:800;color:var(--teal-dark);">dcchamie25@gmail.com</span>
+        <span style="font-weight:800;color:var(--teal-dark);">Gmail only</span> &bull; Google sign-in required
       </div>
 
       <form id="loginForm" class="login-form" novalidate>
@@ -59,12 +39,13 @@
           <div class="recaptcha-hint" id="recaptchaHint" style="display:none;color:#d32f2f;font-size:0.8rem;font-weight:700;margin-top:6px;">Please complete the reCAPTCHA.</div>
         </div>
 
-        <button type="submit" class="login-btn" id="loginBtn">Continue with Google &rarr;</button>
+        <button type="submit" class="login-btn" id="loginBtn">Sign in with Google &rarr;</button>
       </form>
 
       <div id="loginError" style="color:#d32f2f;font-weight:700;font-size:0.8rem;display:none;margin-top:12px;text-align:center;"></div>
+
       <div class="login-footer">
-        Office Control Center &bull; Main Admin: dcchamie25@gmail.com
+        Office Control Center &bull; Secure Google sign-in
       </div>
     </div>
   </div>

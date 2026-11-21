@@ -2072,7 +2072,7 @@ async function initApp() {
         return;
       }
 
-      const email = prompt("Sign in with Google\nEnter your Gmail address:", "dcchamie25@gmail.com");
+      const email = prompt("Sign in with Google\nEnter your Gmail address:", "");
       if (!email) return;
 
       try {
