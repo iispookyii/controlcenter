@@ -41,7 +41,8 @@ const SEED = {
   audit: [],
   notifications: [],
   soaUploads: [],  // Statement of Account uploads
-  studentRequests: [] // Student Invoices & Refund Requests with Proof of Payment
+  studentRequests: [], // Student Invoices & Refund Requests with Proof of Payment
+  balanceAdjustments: [] // Supervisor adjustments awaiting Manager approval
 };
 
 let memory = null;
