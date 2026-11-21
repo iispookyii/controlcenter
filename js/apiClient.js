@@ -48,7 +48,7 @@ function lsState() {
         { id:"a1", email:"dcchamie25@gmail.com", name:"Chamie D.", role:"admin", status:"active", createdAt: new Date().toISOString() }
       ],
       sessions: [], vouchers: [], cashflow: [], payroll: [], blogs: [], invoices: [],
-      leaves: [], overtime: [], tasks: [], audit: [], notifications: [], employees: [], soaUploads: []
+      leaves: [], overtime: [], tasks: [], audit: [], notifications: [], employees: [], soaUploads: [], studentRequests: []
     });
   }
   return _cache;
