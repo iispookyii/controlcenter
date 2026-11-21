@@ -177,15 +177,21 @@ function currentUserInitials() {
 
 /* ---------------- Shell (login vs dashboard) ---------------- */
 function shellLogin() {
-  $q("#loginShell").style.display = "flex";
-  $q("#appShell").style.display = "none";
-  $q("#loginForm").reset();
-  $q("#loginError").style.display = "none";
+  const loginShell = $q("#loginShell");
+  const appShell = $q("#appShell");
+  if (loginShell) loginShell.style.display = "flex";
+  if (appShell) appShell.style.display = "none";
+  const loginForm = $q("#loginForm");
+  if (loginForm) loginForm.reset();
+  const loginError = $q("#loginError");
+  if (loginError) loginError.style.display = "none";
 }
 
 function shellDashboard() {
-  $q("#loginShell").style.display = "none";
+  const loginShell = $q("#loginShell");
+  if (loginShell) loginShell.style.display = "none";
   const app = $q("#appShell");
+  if (!app) return;
   app.style.display = "flex";
   app.classList.add("visible");
   renderSidebar();
