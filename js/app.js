@@ -2409,20 +2409,41 @@ function appRejectBalanceAdjustment(adjId) {
 function appPrintLeave() {
   const win = window.open("", "_blank");
   if (!win) { alert("Please allow popups to print."); return; }
+
+  const now = new Date();
+  const dateFormatted = now.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" });
+  const timeFormatted = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  const timestampStr = `${dateFormatted}, ${timeFormatted}`;
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Leave Register Summary — ACTI Control Center</title>
+<title></title>
 <style>
-  body { font-family: 'Poppins', Arial, sans-serif; font-size: 11px; padding: 25px; color: #1e293b; max-width: 820px; margin: 0 auto; background: #fff; }
-  .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #086375; padding-bottom: 12px; margin-bottom: 16px; }
-  .header h1 { margin: 0; font-size: 13px; color: #086375; font-weight: 700; }
+  @page {
+    size: auto;
+    margin: 20mm;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: 'Poppins', Arial, sans-serif; font-size: 11px; padding: 20px; margin: 0 auto; max-width: 820px; color: #1e293b; background: #fff; }
+  .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #0e90a2; padding-bottom: 12px; margin-bottom: 16px; }
+  .header h1 { margin: 0; font-size: 13px; color: #0e90a2; font-weight: 600; }
   .header p { margin: 2px 0 0; font-size: 10px; color: #64748b; }
   table { width: 100%; border-collapse: collapse; margin-top: 14px; }
   th, td { padding: 8px 10px; border: 1px solid #cbd5e1; font-size: 10px; text-align: left; }
-  th { background: #f8fafc; font-weight: 600; color: #475569; }
-  @media print { body { padding: 0; } }
+  th { background: #f8fafc; font-weight: 500; color: #475569; }
+  .print-page-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    padding-top: 6px;
+    font-size: 9.5px;
+    color: #64748b;
+    border-top: 1px solid #e2e8f0;
+  }
+  @media print { body { padding: 0; margin: 0; max-width: 100%; } }
 </style>
 </head>
 <body>
@@ -2432,8 +2453,8 @@ function appPrintLeave() {
       <p>2nd Floor Vicente Manlapaz Bldg., District 1, Cauayan City, Isabela</p>
     </div>
     <div>
-      <h2 style="margin:0;font-size:13px;color:#086375;">LEAVE REGISTER SUMMARY</h2>
-      <p style="margin:2px 0 0;font-size:10px;">Printed: ${new Date().toLocaleDateString('en-PH')}</p>
+      <h2 style="margin:0;font-size:13px;color:#0e90a2;font-weight:600;">LEAVE REGISTER SUMMARY</h2>
+      <p style="margin:2px 0 0;font-size:10px;">Official Office Records</p>
     </div>
   </div>
   <table>
@@ -2464,7 +2485,14 @@ function appPrintLeave() {
       `).join('')}
     </tbody>
   </table>
-  <script>window.print();</script>
+  <div class="print-page-footer">
+    <div>Leave Register Summary — ACTI Control Center</div>
+    <div>${timestampStr}</div>
+  </div>
+  <script>
+    document.title = "";
+    window.print();
+  </script>
 </body>
 </html>`;
   win.document.write(html);
@@ -2489,6 +2517,11 @@ function appPrintOfficialLeaveForm(id) {
   const win = window.open("", "_blank");
   if (!win) { alert("Please allow popups to print."); return; }
 
+  const now = new Date();
+  const dateFormatted = now.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" });
+  const timeFormatted = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  const timestampStr = `${dateFormatted}, ${timeFormatted}`;
+
   const isVacation = (l.type || "").toLowerCase().includes("vacation");
   const isSick = (l.type || "").toLowerCase().includes("sick");
   const isAcademic = (l.type || "").toLowerCase().includes("academic");
@@ -2504,13 +2537,28 @@ function appPrintOfficialLeaveForm(id) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Official Leave Application — ${escapeHtml(l.employeeName)}</title>
+<title></title>
 <style>
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #0f172a; padding: 20px; max-width: 800px; margin: 0 auto; background: #fff; }
-  .sheet { border: 2px solid #1e293b; background: #fff; }
+  @page {
+    size: auto;
+    margin: 20mm;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+    color: #0f172a;
+    padding: 20px;
+    margin: 0 auto;
+    max-width: 800px;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .sheet { border: 2px solid #1e293b; background: #fff; width: 100%; box-sizing: border-box; }
   .header { text-align: center; padding: 12px 14px 8px; }
   .logo { width: 56px; height: 56px; margin: 0 auto 4px; display: block; border-radius: 50%; object-fit: contain; }
-  .company { color: #086375; font-size: 13px; font-weight: bold; letter-spacing: 0.4px; text-transform: uppercase; }
+  .company { color: #0e90a2; font-size: 13px; font-weight: bold; letter-spacing: 0.4px; text-transform: uppercase; }
   .sub { color: #475569; font-size: 10px; font-style: italic; margin-top: 2px; }
   .title-bar { border-top: 2px solid #1e293b; border-bottom: 2px solid #1e293b; text-align: center; font-weight: bold; font-size: 12px; padding: 5px; letter-spacing: 1px; }
   .meta-row { display: grid; grid-template-columns: 1.1fr 1.3fr 1.2fr 1.2fr; border-bottom: 2px solid #1e293b; padding: 6px 10px; gap: 8px; font-size: 10px; font-weight: bold; }
@@ -2528,7 +2576,17 @@ function appPrintOfficialLeaveForm(id) {
   .sig-role { font-size: 10px; font-style: italic; color: #475569; text-align: center; margin-top: 2px; }
   .bottom-box { border-top: 2px solid #1e293b; padding: 10px 14px; }
   .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; margin-top: 20px; gap: 24px; }
-  @media print { body { padding: 0; } }
+  .print-page-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding: 4px 2px 0;
+    font-size: 9.5px;
+    color: #64748b;
+    border-top: 1px solid #cbd5e1;
+  }
+  @media print { body { padding: 0; margin: 0; max-width: 100%; } }
 </style>
 </head>
 <body>
@@ -2637,7 +2695,14 @@ function appPrintOfficialLeaveForm(id) {
       </div>
     </div>
   </div>
-  <script>window.print();</script>
+  <div class="print-page-footer">
+    <div>Official Leave Application — ${escapeHtml(l.employeeName)}</div>
+    <div>${timestampStr}</div>
+  </div>
+  <script>
+    document.title = "";
+    window.print();
+  </script>
 </body>
 </html>`;
   win.document.write(html);
