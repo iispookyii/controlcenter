@@ -1770,11 +1770,11 @@ function renderLeaveTabBody() {
                     </div>
                   </div>
                   <input type="text" id="pDates" class="paper-line-input" value="November 11, 2026" placeholder="e.g. November 11, 2026">
-                  <div style="margin-top:10px;font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:space-between;">
+                  <div style="margin-top:10px;font-weight:600;font-size:11px;display:flex;align-items:center;justify-content:space-between;">
                     <span>NUMBER OF DAYS:</span>
-                    <span style="font-size:9px;color:var(--teal-dark);font-weight:600;">Auto-computed</span>
+                    <span style="font-size:9px;color:var(--teal);font-weight:500;">Auto-computed</span>
                   </div>
-                  <input type="text" id="pDays" class="paper-line-input" value="1 day" readonly style="background:#f8fafc;font-weight:700;color:#086375;">
+                  <input type="text" id="pDays" class="paper-line-input" value="1 day" readonly style="background:#f8fafc;font-weight:600;color:var(--teal);">
                 </div>
 
                 <!-- Employee Signature Upload & Line -->
@@ -1788,7 +1788,7 @@ function renderLeaveTabBody() {
                     <button type="button" class="btn-sig-pill pill-stamp" onclick="appStampDigitalSignature('emp', $q('#pEmpName')?$q('#pEmpName').value:'Employee')">Stamp</button>
                     <button type="button" class="btn-sig-pill pill-clear" onclick="appClearSignature('emp')">Clear</button>
                   </div>
-                  <input type="text" id="pSigEmpName" class="paper-line-input" value="${escapeHtml(defaultEmpName)}" style="text-align:center;font-weight:700;">
+                  <input type="text" id="pSigEmpName" class="paper-line-input" value="${escapeHtml(defaultEmpName)}" style="text-align:center;font-weight:600;">
                   <div style="font-size:10px;font-style:italic;color:#475569;margin-top:2px;">Employee's Name and Signature</div>
                 </div>
               </div>
@@ -1830,7 +1830,7 @@ function renderLeaveTabBody() {
                     <button type="button" class="btn-sig-pill pill-stamp" onclick="appStampDigitalSignature('supervisor', 'Angelina A. Aquino')">Stamp</button>
                     <button type="button" class="btn-sig-pill pill-clear" onclick="appClearSignature('supervisor')">Clear</button>
                   </div>
-                  <input type="text" id="pSupervisorName" class="paper-line-input" value="ANGELINA A. AQUINO" style="text-align:center;font-weight:700;">
+                  <input type="text" id="pSupervisorName" class="paper-line-input" value="ANGELINA A. AQUINO" style="text-align:center;font-weight:600;">
                   <div class="paper-sig-title">Supervisor</div>
                 </div>
               </div>
@@ -1869,7 +1869,7 @@ function renderLeaveTabBody() {
                     <button type="button" class="btn-sig-pill pill-stamp" onclick="appStampDigitalSignature('manager', 'Patricia Fae C. Ramel, CPA')">Stamp</button>
                     <button type="button" class="btn-sig-pill pill-clear" onclick="appClearSignature('manager')">Clear</button>
                   </div>
-                  <input type="text" id="pManagerName" class="paper-line-input" value="PATRICIA FAE C. RAMEL, CPA" style="text-align:center;font-weight:700;">
+                  <input type="text" id="pManagerName" class="paper-line-input" value="PATRICIA FAE C. RAMEL, CPA" style="text-align:center;font-weight:600;">
                   <div class="paper-sig-title">Manager</div>
                 </div>
               </div>
