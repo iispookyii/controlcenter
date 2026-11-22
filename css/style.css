@@ -654,19 +654,19 @@ input, select, textarea {
 
 .app-sidebar {
   width: 250px;
-  background: linear-gradient(180deg, #095965 0%, #053b43 100%);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, #0e92a4 0%, #0a7e8e 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
   display: flex;
   flex-direction: column;
   z-index: 30;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.08);
+  box-shadow: 4px 0 24px rgba(14, 146, 164, 0.12);
   position: relative;
 }
 
 .brand-bar {
   padding: 16px 18px;
   background: transparent;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
   color: #fff;
   display: flex;
   align-items: center;
@@ -679,7 +679,7 @@ input, select, textarea {
   border-radius: 50%;
   background: #ffffff;
   padding: 2px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   flex-shrink: 0;
   object-fit: cover;
 }
@@ -692,8 +692,8 @@ input, select, textarea {
 
 .brand-name {
   font-family: var(--font-head);
-  font-weight: 500;
-  font-size: 0.85rem;
+  font-weight: 450;
+  font-size: 0.84rem;
   letter-spacing: -0.1px;
   line-height: 1.25;
   color: #ffffff;
@@ -702,8 +702,8 @@ input, select, textarea {
 .brand-subtitle {
   display: block;
   font-size: 0.62rem;
-  color: #b2eaf2;
-  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 350;
   margin-top: 2px;
   line-height: 1.2;
 }
@@ -726,11 +726,11 @@ input, select, textarea {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 9px 16px;
+  padding: 8px 16px;
   border-radius: 18px 0 0 18px;
-  color: #a5e2eb;
-  font-size: 0.78rem;
-  font-weight: 450;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.76rem;
+  font-weight: 350;
   font-family: var(--font-head);
   border: 1px solid transparent;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -738,16 +738,16 @@ input, select, textarea {
 }
 
 .nav-link:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.14);
   color: #ffffff;
 }
 
-/* Image 8 ("Daily Report Concept"): Curved Active Tab Notch Cutout in #0e90a2 Theme */
+/* Image 8 ("Daily Report Concept"): Curved Active Tab Notch Cutout in #0e92a4 Theme */
 .nav-link.active {
   background: #f8fafc;
-  color: #0e90a2;
-  font-weight: 600;
-  box-shadow: -4px 4px 12px rgba(0, 0, 0, 0.05);
+  color: #0e92a4;
+  font-weight: 450;
+  box-shadow: -4px 4px 12px rgba(0, 0, 0, 0.04);
   position: relative;
   z-index: 10;
 }
@@ -787,12 +787,12 @@ input, select, textarea {
 }
 
 .nav-link:hover svg {
-  transform: scale(1.08);
+  transform: scale(1.06);
 }
 
 .nav-link.active svg {
-  stroke: #0e90a2;
-  stroke-width: 2.2;
+  stroke: #0e92a4;
+  stroke-width: 2;
 }
 
 .nav-footer {
@@ -813,7 +813,7 @@ input, select, textarea {
 .topbar-left { display: flex; align-items: center; gap: 14px; }
 .burger { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); color: var(--ink-dim); }
 .burger:hover { background: var(--surface-2); }
-.page-title { font-weight: 550; font-size: 1.05rem; color: var(--ink); }
+.page-title { font-weight: 500; font-size: 1rem; color: var(--ink); }
 
 .topbar-right { display: flex; align-items: center; gap: 12px; }
 .search-wrap { position: relative; }
@@ -823,7 +823,7 @@ input, select, textarea {
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--ink);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 400;
   outline: none;
   width: 190px;
@@ -853,7 +853,7 @@ input, select, textarea {
   color: #ffffff;
   font-family: var(--font-head);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -869,7 +869,7 @@ input, select, textarea {
 .user-name-mini {
   font-family: var(--font-head);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--ink);
   max-width: 140px;
   white-space: nowrap;
@@ -880,7 +880,7 @@ input, select, textarea {
 .user-role-mini {
   font-size: 9.5px;
   color: var(--teal-dark);
-  font-weight: 500;
+  font-weight: 450;
 }
 
 .btn-topbar-logout {
@@ -894,7 +894,7 @@ input, select, textarea {
   color: var(--ink-dim);
   font-family: var(--font-head);
   font-size: 10.5px;
-  font-weight: 500;
+  font-weight: 450;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -913,12 +913,12 @@ input, select, textarea {
   font-size: 0; color: #fff;
 }
 .btn-primary {
-  padding: 7px 15px;
+  padding: 6px 14px;
   background: var(--teal);
   color: #fff;
-  font-weight: 500;
+  font-weight: 450;
   border-radius: 8px;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   box-shadow: 0 2px 8px rgba(14, 144, 162, 0.22);
   transition: all 0.2s ease;
 }
@@ -1105,14 +1105,14 @@ tr:last-child td { border-bottom: none; }
   flex-wrap: wrap;
 }
 .tab-btn {
-  padding: 6px 14px;
+  padding: 5px 13px;
   border-radius: 16px;
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--ink-dim);
   font-family: var(--font-head);
-  font-size: 0.76rem;
-  font-weight: 450;
+  font-size: 0.74rem;
+  font-weight: 400;
   cursor: pointer;
   transition: all 0.2s ease;
   display: inline-flex;
@@ -1127,8 +1127,8 @@ tr:last-child td { border-bottom: none; }
   background: var(--teal);
   color: #ffffff;
   border-color: var(--teal);
-  font-weight: 500;
-  box-shadow: 0 2px 6px rgba(14, 144, 162, 0.25);
+  font-weight: 450;
+  box-shadow: 0 2px 6px rgba(14, 146, 164, 0.25);
 }
 
 /* --- Official ACTI Leave Sheet --- */
